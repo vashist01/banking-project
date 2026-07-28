@@ -1,0 +1,56 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: ai-orchestrator
+
+  ai:
+
+    openai:
+      api-key: ${OPENAI_API_KEY}
+
+      chat:
+        options:
+          model: gpt-4.1-mini
+          temperature: 0.2
+
+    mcp:
+      client:
+        enabled: true
+
+        name: banking-ai-client
+        version: 1.0.0
+
+        type: SYNC
+
+        initialized: true
+
+        request-timeout: 30s
+
+        toolcallback:
+          enabled: true
+
+        streamable-http:
+          connections:
+
+            account:
+              url: http://localhost:8081
+              endpoint: /mcp
+
+            payment:
+              url: http://localhost:8082
+              endpoint: /mcp
+
+            loan:
+              url: http://localhost:8083
+              endpoint: /mcp
+
+            transaction:
+              url: http://localhost:8084
+              endpoint: /mcp
+
+logging:
+  level:
+    org.springframework.ai: DEBUG
+    io.modelcontextprotocol: DEBUG

@@ -1,0 +1,23 @@
+
+    what is jwt :
+    JWt stands for Json web token : is digital signed token use to prove the identity sucre without storing session in server
+    jwt is statelss
+
+    token made 3 steps :
+
+    Header = algorithem + token type {"alg":"HS256","type":"json"}
+    payload = data like user name, role exipry {  "sub": "khana",  "role": "USER",  "iat": 1706252345,  "exp": 1706262345 }
+    signature = header + payload +secret key hash - HMACSHA256(    base64(header) + "." + base64(payload),    secret_key)
+
+    why jwt stateless
+    sever dose not save the token in DB or Session
+
+    server only need
+    secret key and token sent by client
+
+    #cache restart command
+    sudo systemctl restart redis
+    redis-server --version
+
+    redis-cli TTL key_name
+

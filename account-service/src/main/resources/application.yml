@@ -1,0 +1,46 @@
+server:
+  port: 8007
+
+spring:
+  application:
+    name: ACCOUNT-SERVICE
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/account_db
+    username: root
+    password: root123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      leak-detection-threshold: 2000 # Logs a warning if a thread holds a connection > 2 seconds
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    consumer:
+      group-id: payment-service-group
+      auto-offset-reset: earliest
+
+
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info
