@@ -23,12 +23,12 @@ public class TransactionController {
 
     private final TransactionService transactionService;
     @PostMapping("/transfer")
-    public ResponseEntity<TransactionResponse> transfer(@RequestBody @Valid  TransactionRequest transactionRequest){
-        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.transfer(transactionRequest));
+    public ResponseEntity<TransactionResponse> initiateTransaction(@RequestBody @Valid  TransactionRequest transactionRequest){
+        return ResponseEntity.status(HttpStatus.CREATED).body(transactionService.initiateTransaction(transactionRequest));
     }
 
     @GetMapping("/{transactionId}")
-    public ResponseEntity<TransactionResponse> getTransaction(@PathVariable long transactionId){
+    public ResponseEntity<TransactionResponse> getTransaction(@PathVariable String transactionId){
         return ResponseEntity.ok(transactionService.getTransaction(transactionId));
     }
     @GetMapping("/transaction/{accountNumber}")
@@ -37,7 +37,7 @@ public class TransactionController {
     }
 
     @PostMapping("/{transactionId}/verify")
-    public ResponseEntity<TransactionResponse> verifyOTP(@PathVariable long transactionId,
+    public ResponseEntity<TransactionResponse> verifyOTP(@PathVariable String transactionId,
                                                          @RequestParam String otp){
         return ResponseEntity.ok(transactionService.verifyOTP(transactionId,otp));
     }

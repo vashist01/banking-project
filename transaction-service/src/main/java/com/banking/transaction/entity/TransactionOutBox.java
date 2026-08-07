@@ -27,4 +27,6 @@ public class TransactionOutBox {
     private String description;
     @Column(name = "transaction_status")
     private String transactionStatus;
+    @Column(name = "customer_id")
+    private String customerId;
 }

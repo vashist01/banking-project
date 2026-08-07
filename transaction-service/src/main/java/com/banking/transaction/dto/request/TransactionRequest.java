@@ -16,6 +16,7 @@ public record TransactionRequest(
         @NotNull(message = "Amount is required.")
         @Positive(message = "Amount should be greater then 0")
         BigDecimal amount,
-        String description
-) {
+        String description,
+        String customerId
+){
 }

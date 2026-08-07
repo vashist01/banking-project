@@ -23,7 +23,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Account {
+public class Account extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
@@ -91,11 +91,7 @@ public class Account {
     private LocalDateTime lastTransactionAt;
     private LocalDateTime lastInterestCalculatedAt;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
 
     @Version
     private Long version;

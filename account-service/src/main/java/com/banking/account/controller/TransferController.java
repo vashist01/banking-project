@@ -20,26 +20,6 @@ import java.util.List;
 @Slf4j
 public class TransferController {
     private final AccountTransferService accountTransferService;
-    @PostMapping("/transfer")
-    public BaseResponse<TransferResponse> transfer(
-            @RequestParam("sender_account_number") String senderAccountNumber,
-            @RequestParam("receiver_account_number") String receiverAccountNumber,
-            @RequestParam BigDecimal amount,
-            @RequestParam String reference) {
-
-        log.info("Received transfer request: senderAccountNumber={}, receiverAccountNumber={}, amount={}, reference={}",
-                senderAccountNumber, receiverAccountNumber, amount, reference);
-
-        TransferResponse response = accountTransferService.transfer( senderAccountNumber,
-                receiverAccountNumber, amount,reference
-        );
-
-        return BaseResponse.success(
-                response, String.format("Transfer completed successfully. Amount: %s %s",
-                        amount, response.getCurrency())
-        );
-    }
-
     /**
      * POST /api/v1/accounts/transfer/bulk - Bulk transfer
      * Transfers money from one account to multiple accounts

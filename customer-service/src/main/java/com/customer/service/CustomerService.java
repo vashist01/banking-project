@@ -9,6 +9,7 @@ import com.customer.entity.Customer;
 import com.customer.enums.CustomerStatus;
 import com.customer.enums.KYCStatus;
 import com.customer.exception.BusinessException;
+import com.customer.repository.CustomerProjection;
 import com.customer.repository.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +41,7 @@ public class CustomerService {
         }
         String customerNumber = getCustomerNumber();
         Customer customer = Customer.builder()
-                .customerNumber(customerNumber).firstName(request.getFirstName()).lastName(request.getLastName())
+                .customerId(customerNumber).firstName(request.getFirstName()).lastName(request.getLastName())
                 .dateOfBirth(request.getDateOfBirth()).phoneNumber(request.getPhoneNumber()).email(email).
                 status(CustomerStatus.PENDING).kycStatus(KYCStatus.NOT_SUBMITTED)
                 .annualIncome(request.getAnnualIncome()).employer(request.getEmployer()).ssn(request.getSsn())
@@ -56,7 +57,7 @@ public class CustomerService {
     private CustomerResponse convertToResponse(Customer customer) {
         return CustomerResponse.builder()
                 .id(customer.getId())
-                .customerNumber(customer.getCustomerNumber())
+                .customerId(customer.getCustomerId())
                 .firstName(customer.getFirstName())
                 .lastName(customer.getLastName())
                 .middleName(customer.getMiddleName())
@@ -165,11 +166,17 @@ public class CustomerService {
 
     @Transactional
     @CacheEvict(cacheNames = "customer",key = "#id")
-    public void deleteCustomer(Long id, String updatedBy) {
-        Customer customer =findCustomerById(id);
-        customer.setUpdatedBy(updatedBy);
-        customer.setActive(false);
-        customer.setStatus(CustomerStatus.CLOSED);
+    public void deleteCustomer(List<String> id, String updatedBy) {
+        List<Customer> customerList = customerRepository.findByIds(id);
+        if(CollectionUtils.isEmpty(customerList)){
+          throw new RuntimeException("Customer Not Found Exception");
+        }
+        for(Customer customer: customerList){
+          customer.setUpdatedBy(updatedBy);
+          customer.setActive(false);
+          customer.setStatus(CustomerStatus.CLOSED);
+        }
+
         // dirty checking is here
 
     }
@@ -205,7 +212,7 @@ public class CustomerService {
 
     @Cacheable(cacheNames = "customer",key = "#customerNumber")
     public CustomerResponse findByCustomerNumber(String customerNumber) {
-        Customer customer = customerRepository.findByCustomerNumber(customerNumber)
+        Customer customer = customerRepository.findByCustomerId(customerNumber)
                 .orElseThrow(() -> new BusinessException("Customer Not Found By Customer Number"));
         return convertToResponse(customer);
 
@@ -239,4 +246,17 @@ public class CustomerService {
     public Long countCustomersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate) {
         return customerRepository.countCustomersCreatedBetween(startDate,endDate);
     }
+
+  public  String getCustomerByEmail(String email) {
+    try {
+      Thread.sleep(10000);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+    CustomerProjection customerProjection = customerRepository.getCustomerIdByEmail(email);
+    if(customerProjection == null){
+      throw new RuntimeException("Customer Not Found By Entered email");
+    }
+    return customerProjection.getCustomerId();
+  }
 }

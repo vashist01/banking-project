@@ -17,10 +17,6 @@ public class AccountValidator {
     String statusCode = String.valueOf(HttpStatus.BAD_REQUEST.value());
 
     public void validateAccountRequest(CreateAccountRequest request) {
-        // 1. Validate customer ID
-        if (request.getCustomerId() == null || request.getCustomerId().isEmpty()) {
-            throw new AccountValidationException("Customer ID is required",statusCode );
-        }
 
         // 2. Validate account type
         if (request.getAccountType() == null) {

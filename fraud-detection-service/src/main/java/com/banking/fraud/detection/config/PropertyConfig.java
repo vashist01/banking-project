@@ -10,11 +10,11 @@ public class PropertyConfig {
 
     private final  int maxCountPerMinute;
     private final long suspiciousnessMultiplier;
-    private final long maxBalancePercentage;
+    private final String maxBalancePercentage;
 
     public PropertyConfig( @Value("${fraud.max-transaction-per-minute}") int maxCountPerMinute,
                            @Value("${fraud.suspicious-amount-multiplier}") long suspiciousnessMultiplier,
-                           @Value("${fraud.max-balance-percentage}") long maxBalancePercentage) {
+                           @Value("${fraud.max-balance-percentage}") String maxBalancePercentage) {
         this.maxCountPerMinute = maxCountPerMinute;
         this.suspiciousnessMultiplier = suspiciousnessMultiplier;
         this.maxBalancePercentage = maxBalancePercentage;

@@ -14,13 +14,13 @@ spring:
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
-      leak-detection-threshold: 2000 # Logs a warning if a thread holds a connection > 2 seconds
+      leak-detection-threshold: 2000
 
   jpa:
     hibernate:
       ddl-auto: update
 
-    show-sql: true
+    show-sql: false
 
     properties:
       hibernate:
@@ -38,9 +38,96 @@ spring:
       group-id: payment-service-group
       auto-offset-reset: earliest
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
 
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info
+            # Disable Feign retry because Resilience4j Retry is used
+            retryer: feign.Retryer$NeverRetry
+
+#############################################################
+# RESILIENCE4J
+#############################################################
+
+resilience4j:
+
+  ###########################################################
+  # Circuit Breaker
+  ###########################################################
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+
+    instances:
+      customer-service:
+
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
+        recordExceptions:
+          - feign.FeignException
+          - feign.RetryableException
+          - java.lang.Exception
+
+  ###########################################################
+  # Retry
+  ###########################################################
+  retry:
+    instances:
+      customer-service:
+
+        maxAttempts: 3
+
+        waitDuration: 2s
+
+        retryExceptions:
+          - feign.FeignException
+          - feign.RetryableException
+
+        ignoreExceptions:
+          - com.banking.account.exception.DuplicateAccountException
+
+  ###########################################################
+  # Bulkhead
+  ###########################################################
+  bulkhead:
+    instances:
+      customer-service:
+
+        maxConcurrentCalls: 5
+
+        maxWaitDuration: 2s
+
+#############################################################
+# ACTUATOR
+#############################################################
+
+management:
+
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+  endpoint:
+    health:
+      show-details: always
+
+#############################################################
+# LOGGING
+#############################################################
+
+logging:
+  level:
+    io.github.resilience4j: DEBUG
+    org.springframework.cloud.openfeign: DEBUG

@@ -33,7 +33,7 @@ public class TransactionService {
     private final RedisTemplate redisTemplate;
 
     @Transactional
-    public  TransactionResponse transfer(TransactionRequest transactionRequest) {
+    public  TransactionResponse initiateTransaction(TransactionRequest transactionRequest) {
         // initiate balance for deduction
         transactionServiceClient.deductBalance(transactionRequest.senderAccountNumber(),transactionRequest.amount());
 
@@ -45,18 +45,26 @@ public class TransactionService {
         Transaction transaction1 = transactionRepository.save(transaction);
 
         // OutBoxPattern for fraud check
-        TransactionOutBox transactionOutBox = new TransactionOutBox();
-        transactionOutBox.setTransactionId(String.valueOf(transaction1.getId()));
-        transactionOutBox.setTransactionStatus(TransactionStatusEnum.PROCESSING.name());
-        transactionOutBox.setAmount(transaction1.getAmount());
-        transactionOutBox.setSenderAccountNumber(transaction1.getSenderAccountNumber());
-        transactionOutBox.setReceiverAccountNumber(transaction1.getReceiverAccountNumber());
-        transaction.setReceiverAccountNumber(transaction1.getReceiverAccountNumber());
-        transactionOutBoxRepository.save(transactionOutBox);
+      TransactionOutBox transactionOutBox = getTransactionOutBox(
+          transactionRequest, transaction1);
+      transactionOutBoxRepository.save(transactionOutBox);
         return mapToTransactionResponse(transaction1);
     }
 
-    private TransactionResponse mapToTransactionResponse(Transaction transaction1) {
+  private static TransactionOutBox getTransactionOutBox(TransactionRequest transactionRequest,
+      Transaction transaction1) {
+    TransactionOutBox transactionOutBox = new TransactionOutBox();
+    transactionOutBox.setTransactionId(String.valueOf(transaction1.getId()));
+    transactionOutBox.setTransactionStatus(TransactionStatusEnum.PROCESSING.name());
+    transactionOutBox.setAmount(transaction1.getAmount());
+    transactionOutBox.setSenderAccountNumber(transaction1.getSenderAccountNumber());
+    transactionOutBox.setReceiverAccountNumber(transaction1.getReceiverAccountNumber());
+    transactionOutBox.setReceiverAccountNumber(transaction1.getReceiverAccountNumber());
+    transactionOutBox.setCustomerId(transactionRequest.customerId());
+    return transactionOutBox;
+  }
+
+  private TransactionResponse mapToTransactionResponse(Transaction transaction1) {
         return TransactionResponse.builder().transactionId(transaction1.getId()).referenceNumber(transaction1.getReferenceNumber())
                 .receiverAccountNumber(transaction1.getReceiverAccountNumber()).
                 senderAccountNumber(transaction1.getSenderAccountNumber())
@@ -66,7 +74,7 @@ public class TransactionService {
                 .description(Optional.ofNullable(transaction1.getDescription()).orElse("No description added")).build();
     }
 
-    public  TransactionResponse getTransaction(long transactionId) {
+    public  TransactionResponse getTransaction(String transactionId) {
         Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() -> new RuntimeException("No Transaction Found."));
         return mapToTransactionResponse(transaction);
     }
@@ -81,7 +89,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public TransactionResponse verifyOTP(long transactionId, String otp) {
+    public TransactionResponse verifyOTP(String transactionId, String otp) {
         Transaction transaction = transactionRepository.findById( transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found."));
         String otpKey = "verification:otp"+transactionId;
@@ -131,8 +139,8 @@ public class TransactionService {
     }
 
 
-    public void processCleanTransactionResult(Long transactionId) {
-        Transaction transaction = transactionRepository.findById(Long.valueOf(transactionId))
+    public void processCleanTransactionResult(String transactionId) {
+        Transaction transaction = transactionRepository.findById( transactionId)
                 .orElseThrow(() -> new RuntimeException("Transaction not found."));
 
         if(transaction.getTransactionStatus()!=null && transaction.getTransactionStatus() == TransactionStatusEnum.PROCESSING){
@@ -146,6 +154,15 @@ public class TransactionService {
                                                             LocalDateTime endDate) {
 
         log.info("Generating transaction summary for account: {}", accountNumber);
-        List<Transaction> transactionList = transactionRepository.findByAccountNumber(accountNumber,startDate,endDate);
+        //List<Transaction> transactionList = transactionRepository.findByAccountNumber(accountNumber,startDate,endDate);
+        return null;
     }
+  @Transactional
+  public void updateTransactionStatus(String transactionId, TransactionStatusEnum transactionStatusEnum) {
+    Transaction transaction = transactionRepository.findByTransactionId(transactionId).orElseThrow(() ->
+        new RuntimeException("Transaction Not Found by TransactionId"));
+    transaction.setTransactionStatus(transactionStatusEnum);
+
+
+  }
 }

@@ -18,7 +18,7 @@ public interface CustomerRepository extends JpaRepository<Customer,Long> {
 
     List<Customer> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String searchTerm, String searchTerm1);
 
-    Optional<Customer> findByCustomerNumber(String customerNumber);
+    Optional<Customer> findByCustomerId(String customerNumber);
 
     List<Customer> findByStatus(CustomerStatus status);
 
@@ -30,4 +30,9 @@ public interface CustomerRepository extends JpaRepository<Customer,Long> {
 @Query("SELECT COUNT(c) From Customer c where c.createdAt BETWEEN :startDate and :endDate")
     Long countCustomersCreatedBetween(@Param("startDate") LocalDateTime startDate,
                                      @Param("endDate") LocalDateTime endDate);
+@Query("From Customer c where c.id IN(:ids)")
+  List<Customer> findByIds(@Param("ids") List<String> ids);
+
+@Query("SELECT c.customerId from Customer c where email=:email")
+  CustomerProjection getCustomerIdByEmail(@Param("email") String email);
 }

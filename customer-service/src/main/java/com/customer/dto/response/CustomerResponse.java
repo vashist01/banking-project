@@ -19,7 +19,7 @@ import java.util.List;
 public class CustomerResponse implements Serializable {
     private static final long serialVersionUID = 1L;
     private Long id;
-    private String customerNumber;
+    private String customerId;
     private String firstName;
     private String lastName;
     private String middleName;

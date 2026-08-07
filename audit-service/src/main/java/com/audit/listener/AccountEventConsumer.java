@@ -1,32 +1,24 @@
 package com.audit.listener;
 
-import com.credit.service.CreditAccountService;
-import java.util.Map;
+import com.audit.service.AuditEventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-
-@Slf4j
-@RequiredArgsConstructor
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class AccountEventConsumer {
-    private final CreditAccountService creditAccountService;
-    @KafkaListener(topics = "credit-account",groupId = "account-service-group",
-    containerFactory = "kafkaListenerContainerFactory",errorHandler = "customKafkaErrorHandler")
-    public void  accountEvent(@Payload Map<String,Object> payload){
-          creditAccountEvent(payload);
+    private final AuditEventService auditEventService;
+    @KafkaListener(topics = "audit-event",groupId = "audit-service-group")
+    public void  accountEvent(@Payload AuditEvent auditEvent){
+      auditEventService.saveEvent(auditEvent);
     }
 
-  private void creditAccountEvent(Map<String, Object> payload) {
-    creditAccountService.creditAmount(payload);
-  }
-
-  @KafkaListener(topics = "credit-account.DLT",groupId = "account-service-group",
-      containerFactory = "kafkaListenerContainerFactory",errorHandler = "customKafkaErrorHandler")
-  public void  dlqEvent(@Payload Map<String,Object> payload){
-    creditAccountEvent(payload);
+  @KafkaListener(topics = "audit-event.DLT",groupId = "audit-service-group")
+  public void  dlqEvent(@Payload AuditEvent auditEvent){
+    auditEventService.saveEvent(auditEvent);
   }
 
 }

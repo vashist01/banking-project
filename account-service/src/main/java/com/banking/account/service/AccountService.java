@@ -1,5 +1,6 @@
 package com.banking.account.service;
 
+import com.banking.account.client.CustomerClient;
 import com.banking.account.dto.request.CreateAccountRequest;
 import com.banking.account.dto.request.FreezeRequest;
 import com.banking.account.dto.response.AccountResponse;
@@ -12,6 +13,10 @@ import com.banking.account.exception.DuplicateAccountException;
 import com.banking.account.repository.AccountRepository;
 import com.banking.account.repository.projection.BalanceProjection;
 import com.banking.account.validator.AccountValidator;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead.Type;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CachePut;
@@ -36,13 +41,17 @@ public class AccountService {
     private final AccountValidator accountValidator;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final RedisTemplate<String,Object> redisTemplate;
+    private final CustomerClient client;
     private final String DAILY_TRANSFER_LIMIT_KEY="dailyTransferLimitKey:";
     @Transactional
+    @Retry(name = "customer-service",fallbackMethod = "customerFallback")
+    @CircuitBreaker(name = "customer-service", fallbackMethod = "customerFallback")
+    @Bulkhead(name = "customer-service",type = Type.SEMAPHORE,fallbackMethod = "customerFallback")
     public  AccountResponse createAccount(CreateAccountRequest createAccountRequest) {
         log.info("create account for : {}",createAccountRequest.getCustomerId());
+      accountValidator.validateAccountRequest(createAccountRequest);
+      String customerId = client.getCustomerId(createAccountRequest.getEmail());
         try{
-            accountValidator.validateAccountRequest(createAccountRequest);
-
             if (createAccountRequest.getAccountType() == AccountType.SAVINGS){
                 accountRepository.findByCustomerIdAndAccountType(createAccountRequest.getCustomerId(),
                         AccountType.SAVINGS).ifPresent(account ->  {
@@ -54,6 +63,7 @@ public class AccountService {
                     createAccountRequest.getCustomerId());
             Account account = convertToEntity(createAccountRequest);
             account.setAccountNumber(accountNumber);
+            account.setCustomerId(createAccountRequest.getCustomerId());
             account.setStatus(AccountStatus.ACTIVE);
             account.setActive(true);
             account.setOpenedDate(LocalDateTime.now());
@@ -100,7 +110,16 @@ public class AccountService {
         log.info("Published AccountCreatedEvent for account: {}", savedAccount.getId());
     }
 
+  public AccountResponse customerFallback(
+      CreateAccountRequest createAccountRequest,
+      Exception ex) {
 
+    log.error("Fallback Called", ex);
+
+    throw new AccountValidationException(
+        "Customer Service is unavailable",
+        String.valueOf(HttpStatus.SERVICE_UNAVAILABLE.value()));
+  }
 
     private BigDecimal getDefaultTransferLimit(AccountType accountType) {
         return switch (accountType) {
@@ -158,8 +177,7 @@ public class AccountService {
 
     public BigDecimal getBalance(String accountNumber) {
         BalanceProjection balanceProjection = accountRepository.findBalanceProjectionByAccountNumber(accountNumber);
-        return balanceProjection.getBalance();
-
+        return Optional.ofNullable(balanceProjection).map(BalanceProjection::getBalance).orElse(BigDecimal.ZERO);
     }
 
     @Transactional

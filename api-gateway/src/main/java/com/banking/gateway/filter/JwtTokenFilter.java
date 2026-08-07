@@ -10,6 +10,7 @@ import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -33,6 +34,9 @@ public class JwtTokenFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain gatewayFilterChain){
         String path = exchange.getRequest().getURI().getPath();
         log.info("Request received in api-gateway");
+      if (exchange.getRequest().getMethod() == HttpMethod.OPTIONS) {
+        return gatewayFilterChain.filter(exchange);
+      }
         if (path.contains("/api/auth/login") ||
                 path.contains("/api/auth/register") ||
                 path.contains("/api/auth/register/admin") ||
@@ -45,7 +49,7 @@ public class JwtTokenFilter implements GlobalFilter, Ordered {
             return unauthorizedResponse(exchange, "Missing or invalid Authorization header");
         }
         String token = authHeader.substring(TOKEN_PREFIX.length());
-        // Check Token is black listed or not
+        // Check Token is blacklisted or not
         boolean isTokenBlackList = redisTemplate.hasKey(BLACKLIST_PREFIX+token);
        if(isTokenBlackList){
            log.warn("Token is blacklisted");
@@ -100,4 +104,6 @@ public class JwtTokenFilter implements GlobalFilter, Ordered {
     public int getOrder() {
         return -100; // High priority
     }
+
+
 }

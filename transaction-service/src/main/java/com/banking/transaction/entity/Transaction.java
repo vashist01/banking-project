@@ -18,14 +18,21 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "transaction",indexes = {
+@Table(name = "transaction",
+    uniqueConstraints = {
+    @UniqueConstraint(
+        columnNames = "uk_transaction_id",name = "transaction_id"
+    )
+    }
+
+    ,indexes = {
         @Index(name = "idx_sender_account_number",columnList="sender_account_number"),
         @Index(name = "idx_receiver_account_number",columnList = "receiver_account_number")
 })
 public class Transaction{
 
-    @Id@GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    @Id@GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
     @Column(name = "sender_account_number",length = 50)
     private String senderAccountNumber;
     @Column(name = "receiver_account_number",length = 15)
@@ -42,6 +49,7 @@ public class Transaction{
     private String failureReason;
     @Column(name = "reference_number")
     private String referenceNumber;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -51,6 +59,8 @@ public class Transaction{
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+  @Column(name = "transaction_id",unique = true)
+    private String transactionId;
 
     @Version
     private long version;

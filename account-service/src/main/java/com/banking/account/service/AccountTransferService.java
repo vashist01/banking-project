@@ -4,9 +4,11 @@ import com.banking.account.dto.request.BulkTransferRequest;
 import com.banking.account.dto.response.AccountBalanceResponse;
 import com.banking.account.dto.response.TransferResponse;
 import com.banking.account.entity.Account;
+import com.banking.account.entity.OutBoxPattern;
 import com.banking.account.exception.AccountValidationException;
 import com.banking.account.exception.TransferValidationException;
 import com.banking.account.repository.AccountRepository;
+import com.banking.account.repository.OutBoxPatternRepository;
 import com.banking.account.repository.projection.DailyTransferLimitProjection;
 import com.banking.account.validator.AccountValidator;
 import lombok.RequiredArgsConstructor;
@@ -28,24 +30,25 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AccountTransferService {
     private final AccountRepository accountRepository;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final RedisTemplate<String,Object> redisTemplate;
+    private final OutBoxPatternRepository outBoxPatternRepository;
     private final AccountValidator accountValidator;
     private final String DAILY_TRANSFER_LIMIT_KEY="dailyTransferLimitKey:";
     private static final String TRANSFER_LOCK_PREFIX = "transfer:lock:";
     @Transactional
     @CachePut(value = "account",key = "#account.accountNumber")
     public TransferResponse transfer(String senderAccountNumber, String receiverAccountNumber,
-                                     BigDecimal amount, String reference) {
+                                     BigDecimal amount, String transactionId,
+        String senderCustomerId, String receiverCustomerId) {
         log.info("Processing transfer from {} to {} amount: {} reference: {}",
-                senderAccountNumber, receiverAccountNumber, amount, reference);
+                senderAccountNumber, receiverAccountNumber, amount, transactionId);
         Account senderAccount = accountRepository.findByAccountNumber(senderAccountNumber).orElseThrow(() ->
-                new AccountValidationException("Account not foudn By AccountNumber",""));
+                new AccountValidationException("Account not found By AccountNumber",""));
 
         Account receiverAccount = accountRepository.findByAccountNumber(receiverAccountNumber).orElseThrow(() ->
                 new AccountValidationException("Account not found By AccountNumber",""));
 
-        accountValidator.validateAccountTransferRequest(senderAccountNumber,receiverAccountNumber,amount,reference);
+        accountValidator.validateAccountTransferRequest(senderAccountNumber,receiverAccountNumber,amount,transactionId);
         checkDailyTransferLimit(senderAccountNumber,amount);
         String transferId = UUID.randomUUID().toString();
         acquireTransferLocks(senderAccountNumber,receiverAccountNumber,transferId);
@@ -62,18 +65,22 @@ public class AccountTransferService {
                                 senderAccount.getAvailableBalance(), senderAccount.getOverdraftLimit(), amount)
                 );
             }
+            // withdraw amount
             BigDecimal balance = senderAccount.getBalance().subtract(totalDebit);
             BigDecimal availableBalance = senderAccount.getAvailableBalance().subtract(totalDebit);
             senderAccount.setBalance(balance);
             senderAccount.setAvailableBalance(availableBalance);
             senderAccount.setLastTransactionAt(LocalDateTime.now());
             accountRepository.save(senderAccount);
-
-            // deposit amount in receiver account
-            receiverAccount.getBalance().add(amount);
-            receiverAccount.getAvailableBalance().add(amount);
-            receiverAccount.setLastTransactionAt(LocalDateTime.now());
-            accountRepository.save(receiverAccount);
+          OutBoxPattern outBoxPattern = new OutBoxPattern();
+          outBoxPattern.setReceiverAccountNumber(receiverAccountNumber);
+          outBoxPattern.setSenderAccountNumber(senderAccountNumber);
+          outBoxPattern.setTransactionId(transactionId);
+          outBoxPattern.setCurrency("INR");
+          outBoxPattern.setReceiverCustomerId("12354");
+          outBoxPattern.setSenderCustomerId(senderCustomerId);
+          outBoxPattern.setReceiverCustomerId(receiverCustomerId);
+          outBoxPatternRepository.save(outBoxPattern);
         }catch (Exception exception){
             releaseTransferLock(senderAccountNumber,receiverAccountNumber,transferId);
         }

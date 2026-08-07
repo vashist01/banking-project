@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record TransactionResponse(
 
-    long transactionId,
+    String transactionId,
     String senderAccountNumber,
     String receiverAccountNumber,
     BigDecimal amount,

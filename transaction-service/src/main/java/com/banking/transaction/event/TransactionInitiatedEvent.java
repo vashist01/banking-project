@@ -17,4 +17,5 @@ public class TransactionInitiatedEvent {
     private String receiverAccountNumber;
     private BigDecimal amount;
     private String description;
+    private String customerId;
 }

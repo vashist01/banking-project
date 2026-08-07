@@ -80,7 +80,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.searchCustomers(term));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<CustomerResponse> updateCustomer(
             @PathVariable Long id,
             @Valid @RequestBody CustomerRequest request,
@@ -98,9 +98,9 @@ public class CustomerController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete-all")
     public ResponseEntity<Void> deleteCustomer(
-            @PathVariable Long id,
+             @RequestParam("ids")  List<String> ids,
             @RequestHeader("roles") String roles,
             @RequestHeader("email") String username) throws AccessDeniedException {
         
@@ -109,7 +109,7 @@ public class CustomerController {
             throw new AccessDeniedException("Only administrators can delete customers");
         }
         
-        customerService.deleteCustomer(id, username);
+        customerService.deleteCustomer(ids, username);
         return ResponseEntity.noContent().build();
     }
 
@@ -183,6 +183,11 @@ public class CustomerController {
     public ResponseEntity<CustomerResponse> getCustomerByCustomerNumber(@PathVariable String customerNumber) {
         return ResponseEntity.ok( customerService.findByCustomerNumber(customerNumber));
     }
+
+  @GetMapping("/customer-id")
+  public ResponseEntity<String> getCustomerByEmail(@RequestParam("email") String email) {
+    return ResponseEntity.ok( customerService.getCustomerByEmail(email));
+  }
 
     /**
      * Get customers by status

@@ -2,6 +2,7 @@ package com.banking.transaction.consumer;
 
 import com.banking.transaction.entity.Transaction;
 import com.banking.transaction.enums.TransactionStatusEnum;
+import com.banking.transaction.event.CreditAccountEvent;
 import com.banking.transaction.event.OtpVerificationEvent;
 import com.banking.transaction.event.TransactionDetails;
 import com.banking.transaction.publisher.OtpVerificationEventPublisher;
@@ -44,7 +45,7 @@ public class TransactionEventConsumer {
             String accountNumber = (String) payload.get("accountNumber");
             String reason  = (String) payload.get("reason");
 
-            Transaction transaction = transactionRepository.findById(Long.valueOf(transactionId)).orElseThrow(() ->
+            Transaction transaction = transactionRepository.findById(transactionId).orElseThrow(() ->
                     new RuntimeException("Transaction not found."));
 
             if(transaction.getTransactionStatus() == TransactionStatusEnum.PROCESSING){
@@ -77,10 +78,15 @@ public class TransactionEventConsumer {
     @KafkaListener(topics = "fraud.check.clean")
     public void consumeFraudCheckCleanResult(@Payload Map<String,Object> payload){
         try{
-            Long transactionId = (Long) payload.get("transactionId");
+            String transactionId = (String) payload.get("transactionId");
             transactionService.processCleanTransactionResult(transactionId);
         }catch (Exception exception){
             log.error("Failed to process clean transaction: {}",exception.getMessage());
         }
+    }
+
+    @KafkaListener(topics = "debit-amount-event")
+  public void debitAmountEvent(@Payload CreditAccountEvent creditAccountEvent){
+      transactionService.updateTransactionStatus(creditAccountEvent.getTransactionId(),TransactionStatusEnum.PROCESSING);
     }
 }

@@ -32,7 +32,7 @@ public class TransactionKafkaPublisher {
                     .receiverAccountNumber(transactionOutBox.getReceiverAccountNumber()).
                     amount(transactionOutBox.getAmount()).
                     senderAccountNumber(transactionOutBox.getSenderAccountNumber())
-                    .build();
+                .customerId(transactionOutBox.getCustomerId()).build();
             return kafkaTemplate.send(TRANSACTION_INITIATE_TOPIC,
                     String.valueOf(transactionInitiatedEvent.getTransactionId()),
                     transactionInitiatedEvent);

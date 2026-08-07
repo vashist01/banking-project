@@ -1,8 +1,7 @@
 package com.credit.entity;
 
-import com.banking.account.entity.AccountLimits;
-import com.banking.account.enums.AccountStatus;
-import com.banking.account.enums.AccountType;
+import com.credit.enums.AccountStatus;
+import com.credit.enums.AccountType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -63,6 +62,7 @@ public class Account {
 
     private LocalDateTime openedDate;
     private LocalDateTime closedDate;
+
 
     @ElementCollection
     @CollectionTable(name = "account_holders",

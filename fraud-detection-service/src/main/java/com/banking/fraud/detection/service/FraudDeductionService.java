@@ -106,7 +106,7 @@ public class FraudDeductionService {
 
     private boolean isBalanceCheckFailed(BigDecimal senderBalance, BigDecimal amount) {
 
-        BigDecimal maxAllowed = senderBalance.multiply( BigDecimal.valueOf(propertyConfig.getMaxBalancePercentage()));
+        BigDecimal maxAllowed = senderBalance.multiply( BigDecimal.valueOf(Long.valueOf(propertyConfig.getMaxBalancePercentage())));
         return amount.compareTo(maxAllowed) >0;
     }
 
