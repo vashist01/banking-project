@@ -121,6 +121,12 @@
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-zipkin</artifactId>
     </dependency>
+    <!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/sns -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sns</artifactId>
+      <version>2.50.2</version>
+    </dependency>
   </dependencies>
 
   <build>

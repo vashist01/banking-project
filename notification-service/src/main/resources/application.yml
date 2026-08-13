@@ -4,27 +4,3 @@ server:
 spring:
   application:
     name: NOTIFICATION-SERVICE
-
-  kafka:
-    bootstrap-servers: localhost:9092
-
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-    consumer:
-      group-id: payment-service-group
-      auto-offset-reset: earliest
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring:
-          json:
-            trusted:
-              package: "*"
-              use:
-                type:
-                  header: false
-                value:
-                  default:
-                    type: java.util.HashMap

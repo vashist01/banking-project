@@ -3,10 +3,12 @@ package com.banking.payment.scheduler;
 import com.banking.payment.entity.OutBoxPattern;
 import com.banking.payment.entity.Payment;
 import com.banking.payment.repository.OutBoxRepository;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -34,8 +36,16 @@ public class PaymentProcesser {
                 return;
             }
             outBoxPattern.forEach(outBoxPattern1 -> {
-                kafkaTemplate.send(PAYMENT_COMPLETE_TOPIC,outBoxPattern1.getPaymentId(),outBoxPattern);
-                outBoxPattern1.setStatus("COMPLETED");
+             CompletableFuture<SendResult<String,Object>> completableFuture =
+                 kafkaTemplate.send(PAYMENT_COMPLETE_TOPIC,outBoxPattern1.getPaymentId(),outBoxPattern);
+                 completableFuture.whenComplete((result,exception) ->{
+                    if(exception == null){
+                      outBoxPattern1.setStatus("EVENT-SENT");
+                      outBoxRepository.save(outBoxPattern1);
+                    }else{
+                      log.error("Failed to publish message", exception);
+                    }
+                 });
             });
             }catch (Exception exception){
                 log.error("Failed: failed to process payment complete event by process",exception.getMessage());

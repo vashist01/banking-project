@@ -37,4 +37,5 @@ public class OutBoxPattern extends BaseEntity {
   private String remarks;
   @Column(name = "transaction_time")
   private LocalDateTime transactionTime;
+  private String eventStatus;
 }
