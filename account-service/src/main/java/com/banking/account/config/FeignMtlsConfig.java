@@ -16,30 +16,82 @@ public class FeignMtlsConfig {
   private final char[] keystore = "changeit".toCharArray();
   private final String keyStoreKey = "PKCS12";
   @Bean
-  public CloseableHttpClient feignHttpClient() throws Exception{
-    KeyStore keyStore = KeyStore.getInstance(keyStoreKey);
-    try(InputStream inputStream = getClass().getClassLoader().getResourceAsStream("certs/account-keystore.p12")){
-      if(inputStream == null ){
-        throw new IllegalStateException("account-keystore.p12 not found");
-      }
-      keyStore.load(inputStream,keystore);
-    }
-    KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-    keyManagerFactory.init(keyStore,keystore);
+  public CloseableHttpClient feignHttpClient() throws Exception {
 
-    KeyStore trustKeyStore = KeyStore.getInstance(keyStoreKey);
-    try(InputStream inputStream = getClass().getResourceAsStream("certs/account-truststore.p12")){
-      if(inputStream ==null){
-        throw new IllegalStateException("account-truststore.p12 not found");
+    KeyStore keyStore =
+        KeyStore.getInstance("PKCS12");
+
+    try (InputStream is = getClass()
+        .getClassLoader()
+        .getResourceAsStream(
+            "certs/account-keystore.p12")) {
+
+      if (is == null) {
+        throw new IllegalStateException(
+            "account-keystore.p12 not found"
+        );
       }
-      trustKeyStore.load(inputStream,keystore);
-      TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-      trustManagerFactory.init(trustKeyStore);
-      SSLContext sslContext = SSLContext.getInstance("TLS");
-      sslContext.init(keyManagerFactory.getKeyManagers(),trustManagerFactory.getTrustManagers(),null);
-      SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(sslContext);
-      return HttpClients.custom().setSSLSocketFactory(sslConnectionSocketFactory).build();
+
+      keyStore.load(
+          is,
+          "changeit".toCharArray()
+      );
     }
+
+    KeyManagerFactory kmf =
+        KeyManagerFactory.getInstance(
+            KeyManagerFactory.getDefaultAlgorithm()
+        );
+
+    kmf.init(
+        keyStore,
+        "changeit".toCharArray()
+    );
+
+    KeyStore trustStore =
+        KeyStore.getInstance("PKCS12");
+
+    try (InputStream is = getClass()
+        .getClassLoader()
+        .getResourceAsStream(
+            "certs/account-truststore.p12")) {
+
+      if (is == null) {
+        throw new IllegalStateException(
+            "account-truststore.p12 not found"
+        );
+      }
+
+      trustStore.load(
+          is,
+          "changeit".toCharArray()
+      );
+    }
+
+    TrustManagerFactory tmf =
+        TrustManagerFactory.getInstance(
+            TrustManagerFactory.getDefaultAlgorithm()
+        );
+
+    tmf.init(trustStore);
+
+    SSLContext sslContext =
+        SSLContext.getInstance("TLS");
+
+    sslContext.init(
+        kmf.getKeyManagers(),
+        tmf.getTrustManagers(),
+        null
+    );
+
+    SSLConnectionSocketFactory sslSocketFactory =
+        new SSLConnectionSocketFactory(
+            sslContext
+        );
+
+    return HttpClients.custom()
+        .setSSLSocketFactory(sslSocketFactory)
+        .build();
   }
-
 }
+

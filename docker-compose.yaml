@@ -1,93 +1,67 @@
 services:
+  config-server:
+    build:
+      context: config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - banking-network
 
   auth-service:
     build:
-      context: ../auth-service
-      dockerfile: ../../banking-project/banking-system/auth-service/Dockerfile
+      context: ./auth-service
+      dockerfile: Dockerfile
     container_name: auth-service
     ports:
       - "8001:8001"
-    environment:
-      SERVER-PORT: 8001
     networks:
-      - microservice-network
-
-  account-service:
-    build:
-      context: ../account-service
-      dockerfile: ../../banking-project/banking-system/account-service/Dockerfile
-    container_name: account-service
-    ports:
-      - "8007:8007"
-    environment:
-      SERVER-PORT: 8007
-    networks:
-      - microservice-network
+      - banking-network
 
   customer-service:
     build:
-      context: ../customer-service
-      dockerfile: ../../banking-project/banking-system/customer-service/Dockerfile
+      context: ./customer-service
+      dockerfile: Dockerfile
     container_name: customer-service
     ports:
-      - "8008:800"
+      - "8002:8002"
     environment:
-      SERVER-PORT: 8008
+      DB_USER: root
+      DB_PASSWORD: root123
+      RAZOR_KEY_ID: ${RAZOR_KEY_ID}
+      RAZOR_KEY_SECRET: ${RAZOR_KEY_SECRET}
+    depends_on:
+      - config-server
+      - postgres
+      - redis
     networks:
-      - microservice-network
+      - banking-network
+
+  
+
+  account-service:
+    build: ./account-service
+    ports:
+      - "8003:8003"
 
   credit-service:
-    build:
-      context: ../customer-service
-    container_name: customer-service
+    build: ./credit-service
     ports:
-      - "8009:8009"
-    environment:
-      SERVER-PORT: 8009
-    networks:
-      - microservice-network
+      - "8004:8004"
+
+  fraud-deductions-service:
+    build: ./fraud-detection-service
+    ports:
+      - "8005:8005"
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "8006:8006"
 
   transaction-service:
-    build:
-      context: ../transaction-service
-      dockerfile: Dockerfile
-    container_name: transaction-service
+    build: ./transaction-service
     ports:
-      - "8009:8009"
-    environment:
-      SERVER_PORT: 8009
-    networks:
-      - microservices-network
+      - "8008:8008"
 
-  payment-service:
-      build:
-        context: ../payment-service
-        dockerfile: Dockerfile
-      container_name: payment-service
-      ports:
-        - "8010:8010"
-      environment:
-        SERVER_PORT: 8010
-      networks:
-        - microservices-network
-
-  api-gateway:
-      build:
-        context: ../api-gateway
-        dockerfile: Dockerfile
-      container_name: api-gateway
-      ports:
-        - "8769:8769"
-      environment:
-        SERVER_PORT: 8769
-      depends_on:
-        - auth-service
-        - account-service
-        - transaction-service
-        - payment-service
-      networks:
-        - microservices-network
-
-networks:
-  microservice-network:
-    driver: bridge

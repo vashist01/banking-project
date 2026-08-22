@@ -4,3 +4,9 @@ server:
 spring:
   application:
     name: TRANSACTION-SERVICE
+
+  profiles:
+    active: local
+
+  config:
+    import: configserver:http://localhost:8888

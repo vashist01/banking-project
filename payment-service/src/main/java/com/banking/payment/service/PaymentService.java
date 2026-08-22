@@ -6,6 +6,7 @@ import com.banking.payment.dto.response.PaymentOrderResponse;
 import com.banking.payment.entity.OutBoxPattern;
 import com.banking.payment.entity.Payment;
 import com.banking.payment.enums.PaymentStatus;
+import com.banking.payment.pattern.PaymentStrategy;
 import com.banking.payment.repository.OutBoxRepository;
 import com.banking.payment.repository.PaymentRepository;
 import com.banking.payment.scheduler.PaymentProcesser;
@@ -32,6 +33,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OutBoxRepository outBoxRepository;
     private final PaymentProcesser paymentProcesser;
+    private final Map<String,PaymentStrategy> payStartegyMap ;
    private final PropertyConfiguration propertyConfiguration;
 
 
@@ -62,10 +64,16 @@ public class PaymentService {
                 .replace("-","").substring(0,10));
         Order order = razorpayClient.orders.create(jsonObject);
         String razorpayOrderId = order.get("id");
+         // 1. Create entity
         Payment payment = Payment.builder()
                 .accountNumber(createPaymentRequest.getAccountNumber()).razorpayOrderId(razorpayOrderId)
                 .amount(createPaymentRequest.getAmount()).paymentStatus(PaymentStatus.CREATED)
+                .paymentType(payStartegyMap.get(createPaymentRequest.getPaymentType()))
                 .description(Optional.ofNullable(createPaymentRequest.getDescription()).orElse("")).build();
+
+ // 2. Find strategy
+ 
+
     Payment payment1 = paymentRepository.save(payment);
     return mapToPaymentOrderResponse(payment1,razorpayOrderId);
     } catch (RazorpayException e) {

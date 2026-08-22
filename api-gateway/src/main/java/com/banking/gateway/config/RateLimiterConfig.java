@@ -14,8 +14,10 @@ public class RateLimiterConfig {
             // Use IP address as the rate limiting key
             String ip = exchange.getRequest().getRemoteAddress()
                 .getAddress().getHostAddress();
-            String user = exchange.getRequest().getHeaders().getFirst("X-Username");
-            return Mono.just(user != null ? user : ip);
+            String userId = exchange.getRequest().getHeaders().getFirst("X-userId");
+            String userClientId = exchange.getRequest().getHeaders().getFirst("clientId");
+            String userRateLimiting = userId+userClientId; // this approach is token bucket algorithem
+            return Mono.just(userRateLimiting != null ? userRateLimiting : ip);
         };
     }
 

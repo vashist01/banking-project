@@ -9,9 +9,9 @@ RUN mvn clean package -DskipTests
 #stage 2
 FROM eclipse-temurin:17
 
-WORKDIR /customer-service
+WORKDIR /transaction-service
 
-COPY --from=build app/target/*.jar customer.jar
+COPY --from=build app/target/*.jar transaction.jar
 
 # Copy OpenTelemetry Java Agent
 COPY opentelemetry-javaagent.jar opentelemetry-javaagent.jar
@@ -19,6 +19,6 @@ COPY opentelemetry-javaagent.jar opentelemetry-javaagent.jar
 EXPOSE 8008
 
 ENTRYPOINT ["java", \
-    "-javaagent:/customer-service/opentelemetry-javaagent.jar", \
+    "-javaagent:/transaction-service/opentelemetry-javaagent.jar", \
     "-jar", \
-    "customer.jar"]
+    "transaction.jar"]

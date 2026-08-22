@@ -1,11 +1,9 @@
 spring:
-data:
-  redis:
-    host: localhost
-    port: 6379  # Changed to default Redis port
-    timeout: 5000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
+  application:
+    name: payment-service
+
+  profiles:
+    active: local
+
+  config:
+    import: configserver:http://localhost:8888

@@ -1,9 +1,9 @@
-server:
-  port: 8007
-
 spring:
   application:
-    name: ACCOUNT-SERVICE
+    name: account-service
 
-    config:
-      import: configserver:http://config-server:8888
+  profiles:
+    active: local
+
+  config:
+    import: configserver:http://localhost:8888

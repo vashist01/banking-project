@@ -14,4 +14,6 @@ public class CreatePaymentRequest {
     private BigDecimal amount;
 
     private String description;
+    private String paymentType;
+     
 }

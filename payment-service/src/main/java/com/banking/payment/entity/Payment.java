@@ -38,6 +38,10 @@ public class Payment {
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "payment_type")
+    private String paymentType;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

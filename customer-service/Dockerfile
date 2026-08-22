@@ -11,8 +11,14 @@ FROM eclipse-temurin:17
 
 WORKDIR /customer-service
 
-COPY --from=build app/target/*.jar account.jar
+COPY --from=build app/target/*.jar customer.jar
+
+# Copy OpenTelemetry Java Agent
+COPY opentelemetry-javaagent.jar opentelemetry-javaagent.jar
 
 EXPOSE 8008
 
-ENTRYPOINT ["java","-jar","customer.jar"]
+ENTRYPOINT ["java", \
+    "-javaagent:/customer-service/opentelemetry-javaagent.jar", \
+    "-jar", \
+    "customer.jar"]

@@ -16,7 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "account",indexes = {
+@Table(name = "account"
+,uniqueConstraints =
+ @UniqueConstraint(name="accountNumber",columnNames = "accountNumber") 
+,indexes = {
         @Index(name = "idx_account_account_number", columnList = "account_number")
 })
 @Data
