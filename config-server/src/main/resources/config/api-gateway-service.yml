@@ -1,0 +1,65 @@
+main:
+  web-application-type: reactive
+
+cloud:
+  gateway:
+    globalcors:
+      add-to-simple-url-handler-mapping: true
+      cors-configurations:
+        '[/**]':
+          allowedOrigins:
+            - "http://localhost:5173"
+          allowedMethods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - OPTIONS
+          allowedHeaders:
+            - "*"
+          allowCredentials: true
+    enabled: true
+    routes:
+      - id: ACCOUNT-SERVICE
+        uri: http://localhost:8007
+        predicates:
+          - Path=/api/v1/account/**
+        filters:
+          - name: RequestRateLimiter,JwtTokenFilter
+            args:
+              key-resolver: "#{@keyResolver}"  # References your bean
+              redis-rate-limiter.replenishRate: 10
+              redis-rate-limiter.burstCapacity: 20
+
+      - id: TRANSACTION-SERVICE
+        uri: http://localhost:8008
+        predicates:
+          - Path=/api/v1/transaction/**
+        filters:
+          - name: RequestRateLimiter,JwtTokenFilter
+            args:
+              key-resolver: "#{@keyResolver}"
+              redis-rate-limiter.replenishRate: 10
+              redis-rate-limiter.burstCapacity: 20
+
+      - id: PAYMENT-SERVICE
+        uri: http://localhost:8009
+        predicates:
+          - Path=/api/v1/payment/**
+        filters:
+          - name: RequestRateLimiter,JwtTokenFilter
+            args:
+              key-resolver: "#{@keyResolver}"
+              redis-rate-limiter.replenishRate: 10
+              redis-rate-limiter.burstCapacity: 20
+
+      - id: CUSTOMER-SERVICE
+        uri: http://localhost:8082
+        predicates:
+          - Path=/api/v1/customers/**
+        filters:
+          - name: RequestRateLimiter,JwtTokenFilter
+            args:
+              key-resolver: "#{@keyResolver}"
+              redis-rate-limiter.replenishRate: 10
+              redis-rate-limiter.burstCapacity: 20

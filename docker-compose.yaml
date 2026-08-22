@@ -1,0 +1,93 @@
+services:
+
+  auth-service:
+    build:
+      context: ../auth-service
+      dockerfile: ../../banking-project/banking-system/auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      SERVER-PORT: 8001
+    networks:
+      - microservice-network
+
+  account-service:
+    build:
+      context: ../account-service
+      dockerfile: ../../banking-project/banking-system/account-service/Dockerfile
+    container_name: account-service
+    ports:
+      - "8007:8007"
+    environment:
+      SERVER-PORT: 8007
+    networks:
+      - microservice-network
+
+  customer-service:
+    build:
+      context: ../customer-service
+      dockerfile: ../../banking-project/banking-system/customer-service/Dockerfile
+    container_name: customer-service
+    ports:
+      - "8008:800"
+    environment:
+      SERVER-PORT: 8008
+    networks:
+      - microservice-network
+
+  credit-service:
+    build:
+      context: ../customer-service
+    container_name: customer-service
+    ports:
+      - "8009:8009"
+    environment:
+      SERVER-PORT: 8009
+    networks:
+      - microservice-network
+
+  transaction-service:
+    build:
+      context: ../transaction-service
+      dockerfile: Dockerfile
+    container_name: transaction-service
+    ports:
+      - "8009:8009"
+    environment:
+      SERVER_PORT: 8009
+    networks:
+      - microservices-network
+
+  payment-service:
+      build:
+        context: ../payment-service
+        dockerfile: Dockerfile
+      container_name: payment-service
+      ports:
+        - "8010:8010"
+      environment:
+        SERVER_PORT: 8010
+      networks:
+        - microservices-network
+
+  api-gateway:
+      build:
+        context: ../api-gateway
+        dockerfile: Dockerfile
+      container_name: api-gateway
+      ports:
+        - "8769:8769"
+      environment:
+        SERVER_PORT: 8769
+      depends_on:
+        - auth-service
+        - account-service
+        - transaction-service
+        - payment-service
+      networks:
+        - microservices-network
+
+networks:
+  microservice-network:
+    driver: bridge
