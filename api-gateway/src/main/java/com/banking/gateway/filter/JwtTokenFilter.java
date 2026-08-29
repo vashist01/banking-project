@@ -38,8 +38,7 @@ public class JwtTokenFilter implements GlobalFilter, Ordered {
         return gatewayFilterChain.filter(exchange);
       }
         if (path.contains("/api/auth/login") ||
-                path.contains("/api/auth/register") ||
-                path.contains("/api/auth/register/admin") ||
+                path.contains("/api/auth/register/**") || 
                 path.contains("/actuator")) {
             return gatewayFilterChain.filter(exchange);
         }

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: dashboard-service
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: dashboard-service
+
+  template:
+
+    metadata:
+      labels:
+        app: dashboard-service
+
+    spec:
+
+      containers:
+        - name: dashboard-service
+
+          image: rajvi1023/dashboard-service:1
+
+          ports:
+            - containerPort: 8080
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080

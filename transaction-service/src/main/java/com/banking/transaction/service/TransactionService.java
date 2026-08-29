@@ -12,6 +12,7 @@ import com.banking.transaction.repository.TransactionOutBoxRepository;
 import com.banking.transaction.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -164,5 +166,13 @@ public class TransactionService {
     transaction.setTransactionStatus(transactionStatusEnum);
 
 
+  }
+  @Cacheable(value = "transactions", key = "'all-transactions'")
+  public List<TransactionResponse> getAllTransactions() {
+     List<Transaction> transactionsList = transactionRepository.findAll();
+     if(CollectionUtils.isEmpty(transactionsList)){
+        return Collections.emptyList();
+     }
+     return transactionsList.stream().map(this::mapToTransactionResponse).toList(); 
   }
 }

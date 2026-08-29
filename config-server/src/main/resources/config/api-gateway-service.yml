@@ -63,3 +63,14 @@ cloud:
               key-resolver: "#{@keyResolver}"
               redis-rate-limiter.replenishRate: 10
               redis-rate-limiter.burstCapacity: 20
+
+      - id: DASHBOARD-SERVICE
+        uri: http://localhost:8020
+        predicates:
+          - Path=/api/v1/dashboard/**
+        filters:
+          - name: RequestRateLimiter,JwtTokenFilter
+            args:
+              key-resolver: "#{@keyResolver}"
+              redis-rate-limiter.replenishRate: 10
+              redis-rate-limiter.burstCapacity: 20

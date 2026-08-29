@@ -5,6 +5,7 @@ import com.banking.account.dto.request.FreezeRequest;
 import com.banking.account.dto.response.AccountResponse;
 import com.banking.account.service.AccountService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,11 @@ import java.math.BigDecimal;
 public class AccountController {
 
     private final AccountService accountService;
+
+    @GetMapping("/all-account")
+    public List<AccountResponse> getAllAccount(){
+      return  accountService.getAllAccount();
+    }
 
     @PostMapping("/create-account")
     public ResponseEntity<AccountResponse> createAccount(@RequestBody  @Valid  CreateAccountRequest createAccountRequest){

@@ -1,0 +1,68 @@
+pipeline {
+
+    agent any
+
+    enviroment {
+        IMAGE = "rajvi1023/dashboard-service"
+        TAG   = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('checkout'){
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build'){
+            steps {
+
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage ('Test'){
+
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Docker Build'){
+
+            steps {
+                sh """
+                docker build -t ${IMAGE}:${TAG} .
+                """
+            }
+        }
+
+        stage('Docker Push'){
+
+            steps {
+                sh """
+                        echo \$PASSWORD | docker login \
+                        -u \$USERNAME \
+                        --password-stdin
+
+                        docker push ${IMAGE}:${TAG}
+                    """
+            }
+        }
+
+        stage('Deploy Kubernetes'){
+
+            steps {
+
+                /* groovylint-disable-next-line GStringExpressionWithinString */
+                sh '''
+                   kubctl set image deployement/dashboard-service \
+                   dashboard-service = ${IMAGE}:${TAG}
+
+                   kubct rollout status \
+                   deployment/dashboard-service
+                '''
+            }
+        }
+    }
+}

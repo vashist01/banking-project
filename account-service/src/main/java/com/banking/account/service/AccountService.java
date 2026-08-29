@@ -17,6 +17,9 @@ import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead.Type;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CachePut;
@@ -251,4 +254,12 @@ public class AccountService {
 
         return mapToAccountResponse(account);
     }
+
+  public List<AccountResponse> getAllAccount() {
+    List<Account> accountList = accountRepository.findAll();
+    if(accountList.isEmpty()){
+      return Collections.emptyList();
+    }
+    return accountList.stream().map(this::mapToAccountResponse).toList();
+  }
 }

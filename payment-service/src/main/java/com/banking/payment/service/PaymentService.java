@@ -68,7 +68,7 @@ public class PaymentService {
         Payment payment = Payment.builder()
                 .accountNumber(createPaymentRequest.getAccountNumber()).razorpayOrderId(razorpayOrderId)
                 .amount(createPaymentRequest.getAmount()).paymentStatus(PaymentStatus.CREATED)
-                .paymentType(payStartegyMap.get(createPaymentRequest.getPaymentType()))
+                .paymentType(payStartegyMap.get(createPaymentRequest.getPaymentType()).toString())
                 .description(Optional.ofNullable(createPaymentRequest.getDescription()).orElse("")).build();
 
  // 2. Find strategy

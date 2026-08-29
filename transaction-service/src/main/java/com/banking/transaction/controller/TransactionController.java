@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 @RequestMapping("/api/v1/transaction")
@@ -59,4 +62,12 @@ public class TransactionController {
 
         return ResponseEntity.ok(summary);
     }
+
+
+    @GetMapping("/all-transactions")
+    public List<TransactionResponse> getAllTransactions() {
+        
+        return transactionService.getAllTransactions();
+    }
+    
 }
