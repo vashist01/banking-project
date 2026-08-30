@@ -57,7 +57,9 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                echo 'Docker push will happen here'
+                sh """ 
+                docker push ${IMAGE_NAME}:${IMAGE_TAG}
+            """
             }
         }
 
