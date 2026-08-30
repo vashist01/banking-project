@@ -76,13 +76,17 @@ pipeline {
         }
         stage('Deploy Kubernetes') {
             steps {
-                sh """
-            kubectl set image deployment/dashboard-service \
-            dashboard-service=${IMAGE_NAME}:${IMAGE_TAG}
+                dir('dashboard-service') {
+                    sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
 
-            kubectl rollout status \
-            deployment/dashboard-service
-        """
+                kubectl set image deployment/dashboard-service \
+                    dashboard-service=$IMAGE_NAME:$IMAGE_TAG
+
+                kubectl rollout status deployment/dashboard-service
+            '''
+                }
             }
         }
     }
