@@ -74,16 +74,15 @@ pipeline {
         }
             }
         }
-
         stage('Deploy Kubernetes') {
             steps {
                 sh """
-                    kubectl set image deployment/dashboard-service \
-                    dashboard-service=${IMAGE}:${TAG}
+            kubectl set image deployment/dashboard-service \
+            dashboard-service=${IMAGE_NAME}:${IMAGE_TAG}
 
-                    kubectl rollout status \
-                    deployment/dashboard-service
-                """
+            kubectl rollout status \
+            deployment/dashboard-service
+        """
             }
         }
     }
