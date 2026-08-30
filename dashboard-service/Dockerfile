@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:17
 
-WORKDIR /account-service
+WORKDIR /dashboard-service
 
 COPY --from=build app/target/*.jar dashbaord.jar
 
