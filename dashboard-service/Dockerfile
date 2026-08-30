@@ -1,6 +1,15 @@
-FROM eclipse-temurin:17-jre
+FROM maven:3.9-eclipse-temurin-21 AS build
 
-WORKDIR /dashbaord-service
+WORKDIR /app
+
+COPY pom.xml .
+COPY src ./src
+
+RUN mvn clean package -DskipTests
+
+FROM eclipse-temurin:21-jre
+
+WORKDIR /dashboard-service
 
 COPY --from=build /app/target/dashboard.jar dashboard.jar
 
