@@ -57,9 +57,21 @@ pipeline {
 
         stage('Docker Push') {
             steps {
-                sh """ 
+                withCredentials([
+            usernamePassword(
+                credentialsId: 'dockerhub',
+                usernameVariable: 'rajvi1023',
+                passwordVariable: 'motherisgod@1023'
+            )
+        ]) {
+                    sh """
+                echo \$DOCKER_PASSWORD | docker login \
+                    -u \$DOCKER_USERNAME \
+                    --password-stdin
+
                 docker push ${IMAGE_NAME}:${IMAGE_TAG}
             """
+        }
             }
         }
 
