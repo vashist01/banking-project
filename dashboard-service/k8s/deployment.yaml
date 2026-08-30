@@ -22,10 +22,10 @@ spec:
       containers:
         - name: dashboard-service
 
-          image: rajvi1023/dashboard-service:1
+          image: rajvi1023/dashboard-service:6
 
           ports:
-            - containerPort: 8080
+            - containerPort: 8020
 
           readinessProbe:
             httpGet:
