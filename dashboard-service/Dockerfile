@@ -1,16 +1,9 @@
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM eclipse-temurin:17-jre
 
-WORKDIR /app
+WORKDIR /dashbaord-service
 
-COPY pom.xml .
-COPY src ./src
+COPY --from=build /app/target/*.jar dashboard.jar
 
-RUN mvn clean package -DskipTests
-
-FROM eclipse-temurin:17
-
-WORKDIR /app
-
-COPY --from=build /app/target/dashboard.jar dashboard.jar
+EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "dashboard.jar"]
