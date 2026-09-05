@@ -8,7 +8,7 @@ metadata:
 data:
   SPRING_PROFILES_ACTIVE: local
 
-  DB_URL: jdbc:mysql://mysql:3306/auth_db?useSSL=false&serverTimezone=UTC
+  DB_URL: jdbc:mysql://localhost:3306/auth_db?useSSL=false&serverTimezone=UTC
 
   REDIS_HOST: redis
   REDIS_PORT: "6379"
