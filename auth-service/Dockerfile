@@ -1,21 +1,30 @@
+# =========================
 # Stage 1: Build
+# =========================
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /auth-service
 
 COPY pom.xml .
+
+# Download dependencies first
+RUN mvn dependency:go-offline
+
 COPY src ./src
 
 RUN mvn clean package -DskipTests
 
+
+# =========================
 # Stage 2: Run
-FROM eclipse-temurin:17
+# =========================
+FROM eclipse-temurin:17-jre
 
 WORKDIR /auth-service
 
-COPY --from=build /app/target/*.jar auth.jar
+COPY --from=build /auth-service/target/*.jar auth.jar
 
-EXPOSE 8008
+EXPOSE 8001
 
 ENTRYPOINT ["java", \
     "-XX:+UseContainerSupport", \
