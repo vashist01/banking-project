@@ -1,15 +1,18 @@
-FROM eclipse-temurin:21-jre
+FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-COPY target/*.jar auth.jar
+COPY pom.xml .
+COPY src ./src
 
-EXPOSE 8001
+RUN mvn clean package -DskipTests
 
-ENTRYPOINT ["java", \
-    "-XX:+UseContainerSupport", \
-    "-XX:MaxRAMPercentage=75.0", \
-    "-XX:InitialRAMPercentage=25.0", \
-    "-Djava.security.egd=file:/dev/./urandom", \
-    "-jar", \
-    "auth.jar"]
+FROM eclipse-temurin:21-jre
+
+WORKDIR /dashboard-service
+
+COPY --from=build /app/target/auth.jar auth.jar
+
+EXPOSE 8020
+
+ENTRYPOINT ["java", "-jar", "auth.jar"]
