@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: service
+
+
+metadata: 
+   name: auth-service
+   namespace: banking
+
+
+spec: 
+  type: ClusterIP
+
+
+  selector: 
+      app: auth-service
+
+  port: 
+    - name: http
+      port: 8001
+      targetPort: http
+
+  sessionAffinity: None

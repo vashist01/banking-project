@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: Deployment
+
+metadata:
+  name: auth-service
+  namespace: banking
+
+  lebels:
+    app: auth-service
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+
+    rollingupdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+    selector:
+      matchLebels:
+        app: auth-service
+
+    template:
+      metadata:
+        lebels:
+          app: auth-service
+
+  spec:
+    terminationGracePeriodSeconds: 30
+
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 101
+      rumAsGroup: 1001
+      fsGroup: 1001
+
+    containers:
+      - name: auth-service
+
+        image: rajvi1023/auth-service:1.0.0
+
+        imagePullPolicy: ifNotPresent
+
+        ports:
+          - name: http
+            containerPort: 8001
+
+        envFrom:
+          - configMapRef:
+              name: auth-service-config
+
+          - secretRef:
+              name: auth-service-secret
+
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"
+
+    startupProb:
+      httpGet:
+        path: /actuator/health
+        port: http
+
+      initialDelaySecond: 20
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 30
+
+    readinessProbe:
+      httpGet:
+        path: /actuator/health/readiness
+        port: http
+
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+  livenesProb:
+    httpGet:
+      path: /actuator/health/liveness
+      prot: http
+
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities: 
+          drop:
+            - ALL
+            

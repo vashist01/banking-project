@@ -1,0 +1,93 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'rajvi1023/auth-service'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // stage('Debug') {
+        //     steps {
+        //         sh '''
+        //             echo "Workspace:"
+        //             pwd
+
+        //             echo "Files:"
+        //             ls -la
+
+        //             echo "Maven projects:"
+        //             find . -name pom.xml
+        //         '''
+        //     }
+        // }
+
+        stage('Build') {
+            steps {
+                dir('auth-service') {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('auth-service') {
+                    sh 'mvn test'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir('auth-service') {
+                    sh """
+                        docker build \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    """
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([
+            usernamePassword(
+                credentialsId: 'dockerhub',
+                usernameVariable: 'DOCKER_USERNAME',
+                passwordVariable: 'DOCKER_PASSWORD'
+            )
+        ]) {
+                    sh """
+                echo \$DOCKER_PASSWORD | docker login \
+                    -u \$DOCKER_USERNAME \
+                    --password-stdin
+
+                docker push ${IMAGE_NAME}:${IMAGE_TAG}
+            """
+        }
+            }
+        }
+        stage('Deploy Kubernetes') {
+            steps {
+                dir('auth-service') {
+                    sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+
+                kubectl set image deployment/auth-service \
+                    auth-service=$IMAGE_NAME:$IMAGE_TAG
+
+                kubectl rollout status deployment/auth-service
+            '''
+                }
+            }
+        }
+    }
+}
