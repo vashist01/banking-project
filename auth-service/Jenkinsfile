@@ -8,10 +8,23 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
+
+                sh '''
+            echo "=============================="
+            echo "JENKINS WORKSPACE"
+            echo "=============================="
+
+            pwd
+
+            echo "=============================="
+            echo "FILES"
+            echo "=============================="
+
+            find . -maxdepth 3 -type f | sort
+        '''
             }
         }
 
@@ -89,7 +102,7 @@ pipeline {
         }
 
         failure {
-            echo "Pipeline failed."
+            echo 'Pipeline failed.'
         }
     }
 }
