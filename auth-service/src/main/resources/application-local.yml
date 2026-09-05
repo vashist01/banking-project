@@ -6,19 +6,18 @@ spring:
     name: auth-service
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://mysql:3306/auth_db?useSSL=false&serverTimezone=UTC}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/auth_db?useSSL=false&serverTimezone=UTC}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
     hikari:
-      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
-      minimum-idle: ${DB_POOL_MIN_IDLE:5}
-      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
-      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
-      max-lifetime: ${DB_MAX_LIFETIME:1800000}
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
       validation-timeout: 5000
-      leak-detection-threshold: 60000
 
   jpa:
     hibernate:
@@ -30,15 +29,15 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:redis}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      timeout: ${REDIS_TIMEOUT:2000ms}
+      timeout: 2000ms
 
       lettuce:
         pool:
-          max-active: ${REDIS_MAX_ACTIVE:8}
-          max-idle: ${REDIS_MAX_IDLE:8}
-          min-idle: ${REDIS_MIN_IDLE:2}
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
           max-wait: 2000ms
 
   cache:
@@ -47,14 +46,12 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_URL:http://eureka-server:8761/eureka/}
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
     fetch-registry: true
     register-with-eureka: true
 
   instance:
     prefer-ip-address: true
-    lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
 
 management:
   endpoints:
@@ -74,18 +71,11 @@ management:
     readinessstate:
       enabled: true
 
-  metrics:
-    tags:
-      application: ${spring.application.name}
-
 logging:
   level:
     root: INFO
     com.banking.auth: INFO
     org.springframework.security: INFO
-
-  pattern:
-    level: "%5p [${spring.application.name:},traceId=%X{traceId:-},spanId=%X{spanId:-}]"
 
 springdoc:
   api-docs:
