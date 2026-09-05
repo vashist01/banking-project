@@ -1,11 +1,11 @@
-apiVersion: v1
+apiVersion: apps/v1
 kind: Deployment
 
 metadata:
   name: auth-service
   namespace: banking
 
-  lebels:
+  labels:
     app: auth-service
 
 spec:
@@ -13,90 +13,89 @@ spec:
 
   strategy:
     type: RollingUpdate
-
-    rollingupdate:
+    rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
 
-    selector:
-      matchLebels:
+  selector:
+    matchLabels:
+      app: auth-service
+
+  template:
+    metadata:
+      labels:
         app: auth-service
 
-    template:
-      metadata:
-        lebels:
-          app: auth-service
+    spec:
+      terminationGracePeriodSeconds: 30
 
-  spec:
-    terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
 
-    securityContext:
-      runAsNonRoot: true
-      runAsUser: 101
-      rumAsGroup: 1001
-      fsGroup: 1001
+      containers:
+        - name: auth-service
 
-    containers:
-      - name: auth-service
+          image: rajvi1023/auth-service:1.0.0
 
-        image: rajvi1023/auth-service:1.0.0
+          imagePullPolicy: IfNotPresent
 
-        imagePullPolicy: ifNotPresent
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
 
-        ports:
-          - name: http
-            containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: auth-service-config
 
-        envFrom:
-          - configMapRef:
-              name: auth-service-config
+            - secretRef:
+                name: auth-service-secret
 
-          - secretRef:
-              name: auth-service-secret
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
 
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
 
-        limits:
-          cpu: "1000m"
-          memory: "1Gi"
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
 
-    startupProb:
-      httpGet:
-        path: /actuator/health
-        port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 30
 
-      initialDelaySecond: 20
-      periodSeconds: 10
-      timeoutSeconds: 3
-      failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
 
-    readinessProbe:
-      httpGet:
-        path: /actuator/health/readiness
-        port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
 
-      initialDelaySeconds: 10
-      periodSeconds: 10
-      timeoutSeconds: 3
-      failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
 
-  livenesProb:
-    httpGet:
-      path: /actuator/health/liveness
-      prot: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
 
-    initialDelaySeconds: 30
-    periodSeconds: 20
-    timeoutSeconds: 3
-    failureThreshold: 3
-
-    securityContext:
-      allowPrivilegeEscalation: false
-      readOnlyRootFilesystem: true
-      capabilities: 
-          drop:
-            - ALL
-            
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
