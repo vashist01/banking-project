@@ -9,7 +9,7 @@ RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:21-jre
 
-WORKDIR /dashboard-service
+WORKDIR /auth-service
 
 COPY --from=build /app/target/auth.jar auth.jar
 
