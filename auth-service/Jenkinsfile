@@ -4,42 +4,23 @@ pipeline {
     environment {
         IMAGE_NAME = 'rajvi1023/auth-service'
         IMAGE_TAG = "${BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        // stage('Debug') {
-        //     steps {
-        //         sh '''
-        //             echo "Workspace:"
-        //             pwd
-
-        //             echo "Files:"
-        //             ls -la
-
-        //             echo "Maven projects:"
-        //             find . -name pom.xml
-        //         '''
-        //     }
-        // }
-
-        stage('Build') {
+        stage('Build & Test') {
             steps {
                 dir('auth-service') {
-                    sh 'mvn clean package -DskipTests'
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                dir('auth-service') {
-                    sh 'mvn test'
+                    sh '''
+                        mvn clean verify
+                    '''
                 }
             }
         }
@@ -47,10 +28,11 @@ pipeline {
         stage('Docker Build') {
             steps {
                 dir('auth-service') {
-                    sh """
+                    sh '''
                         docker build \
-                        -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    """
+                            -t ${FULL_IMAGE} \
+                            .
+                    '''
                 }
             }
         }
@@ -58,36 +40,54 @@ pipeline {
         stage('Docker Push') {
             steps {
                 withCredentials([
-            usernamePassword(
-                credentialsId: 'dockerhub',
-                usernameVariable: 'DOCKER_USERNAME',
-                passwordVariable: 'DOCKER_PASSWORD'
-            )
-        ]) {
-                    sh """
-                echo \$DOCKER_PASSWORD | docker login \
-                    -u \$DOCKER_USERNAME \
-                    --password-stdin
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
 
-                docker push ${IMAGE_NAME}:${IMAGE_TAG}
-            """
-        }
+                        docker push ${FULL_IMAGE}
+
+                        docker logout
+                    '''
+                }
             }
         }
+
         stage('Deploy Kubernetes') {
             steps {
                 dir('auth-service') {
                     sh '''
-                kubectl apply -f k8s/deployment.yaml
-                kubectl apply -f k8s/service.yaml
+                        kubectl apply -f k8s/config.yaml
+                        kubectl apply -f k8s/secret.yaml
+                        kubectl apply -f k8s/deployment.yaml
+                        kubectl apply -f k8s/service.yaml
 
-                kubectl set image deployment/auth-service \
-                    auth-service=$IMAGE_NAME:$IMAGE_TAG
+                        kubectl set image deployment/auth-service \
+                            auth-service=${FULL_IMAGE} \
+                            -n banking
 
-                kubectl rollout status deployment/auth-service
-            '''
+                        kubectl rollout status deployment/auth-service \
+                            -n banking \
+                            --timeout=180s
+                    '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment successful: ${FULL_IMAGE}"
+        }
+
+        failure {
+            echo "Pipeline failed."
         }
     }
 }
