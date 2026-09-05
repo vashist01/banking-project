@@ -61,7 +61,7 @@ pipeline {
 
         stage('Deploy Kubernetes') {
             steps {
-                dir('auth-service') {
+                dir('auth-service/auth') {
                     sh '''
                         kubectl apply -f k8s/config.yaml
                         kubectl apply -f k8s/secret.yaml
