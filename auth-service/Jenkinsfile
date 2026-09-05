@@ -74,24 +74,25 @@ pipeline {
 
         stage('Deploy Kubernetes') {
             steps {
-                sh '''
-                    kubectl apply -f k8s/namespace.yaml
+                dir('auth-service') {
+                    sh '''
+                kubectl apply -f k8s/namespace.yaml
+                kubectl apply -f k8s/auth/auth-config.yaml
+                kubectl apply -f k8s/auth/auth-secret.yaml
+                kubectl apply -f k8s/auth/auth-deployment.yaml
+                kubectl apply -f k8s/auth/auth-service.yaml
+                kubectl apply -f k8s/auth/auth-hpa.yaml
+                kubectl apply -f k8s/auth/auth-pdb.yaml
 
-                    kubectl apply -f k8s/auth/auth-config.yaml
-                    kubectl apply -f k8s/auth/auth-secret.yaml
-                    kubectl apply -f k8s/auth/auth-deployment.yaml
-                    kubectl apply -f k8s/auth/auth-service.yaml
-                    kubectl apply -f k8s/auth/auth-hpa.yaml
-                    kubectl apply -f k8s/auth/auth-pdb.yaml
+                kubectl set image deployment/auth-service \
+                    auth-service=${FULL_IMAGE} \
+                    -n banking
 
-                    kubectl set image deployment/auth-service \
-                        auth-service=${FULL_IMAGE} \
-                        -n banking
-
-                    kubectl rollout status deployment/auth-service \
-                        -n banking \
-                        --timeout=180s
-                '''
+                kubectl rollout status deployment/auth-service \
+                    -n banking \
+                    --timeout=180s
+            '''
+                }
             }
         }
     }
