@@ -88,7 +88,7 @@ pipeline {
 
                 kubectl apply -f k8s/auth/auth-hpa.yaml
                 kubectl apply -f k8s/auth/auth-pdb.yaml
-
+                kubectl apply -f k8s/auth/mysql-service.yaml
                 kubectl rollout status deployment/auth-service \
                     -n banking \
                     --timeout=180s
