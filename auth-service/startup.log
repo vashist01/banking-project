@@ -1,0 +1,77 @@
+[[1;34mINFO[m] Scanning for projects...
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-------------------------< [0;36mcom.:auth-service[0;1m >--------------------------[m
+[[1;34mINFO[m] [1mBuilding auth-service 0.0.1[m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mspring-boot-maven-plugin:4.0.7:run[m [1m(default-cli)[0;1m > [0;1mtest-compile[m @ [36mauth-service[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:3.3.1:resources[m [1m(default-resources)[m @ [36mauth-service[0;1m ---[m
+[[1;34mINFO[m] Copying 3 resources from src/main/resources to target/classes
+[[1;34mINFO[m] Copying 0 resource from src/main/resources to target/classes
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.14.1:compile[m [1m(default-compile)[m @ [36mauth-service[0;1m ---[m
+[[1;34mINFO[m] Nothing to compile - all classes are up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:3.3.1:testResources[m [1m(default-testResources)[m @ [36mauth-service[0;1m ---[m
+[[1;34mINFO[m] skip non existing resourceDirectory /home/dell/java/banking-project/banking-system/auth-service/src/test/resources
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.14.1:testCompile[m [1m(default-testCompile)[m @ [36mauth-service[0;1m ---[m
+[[1;34mINFO[m] Nothing to compile - all classes are up to date.
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mspring-boot-maven-plugin:4.0.7:run[m [1m(default-cli)[0;1m < [0;1mtest-compile[m @ [36mauth-service[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mspring-boot-maven-plugin:4.0.7:run[m [1m(default-cli)[m @ [36mauth-service[0;1m ---[m
+[[1;34mINFO[m] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.7)
+
+2026-09-10T13:23:51.389+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] com.auth.AuthServiceApplication          : Starting AuthServiceApplication using Java 21.0.12 with PID 693105 (/home/dell/java/banking-project/banking-system/auth-service/target/classes started by dell in /home/dell/java/banking-project/banking-system/auth-service)
+2026-09-10T13:23:51.391+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] com.auth.AuthServiceApplication          : The following 1 profile is active: "local"
+2026-09-10T13:23:52.031+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-09-10T13:23:52.033+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-09-10T13:23:52.121+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 82 ms. Found 1 JPA repository interface.
+2026-09-10T13:23:52.133+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2026-09-10T13:23:52.134+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2026-09-10T13:23:52.144+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] .RepositoryConfigurationExtensionSupport : Spring Data Redis - Could not safely identify store assignment for repository candidate interface com.auth.repository.UserRepository; If you want this repository to be a Redis repository, consider annotating your entities with one of these annotations: org.springframework.data.redis.core.RedisHash (preferred), or consider extending one of the following types with your repository: org.springframework.data.keyvalue.repository.KeyValueRepository
+2026-09-10T13:23:52.145+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 5 ms. Found 0 Redis repository interfaces.
+2026-09-10T13:23:52.290+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=d649083b-1d5f-36cf-b03f-bb6317319441
+2026-09-10T13:23:52.548+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8001 (http)
+2026-09-10T13:23:52.558+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-09-10T13:23:52.558+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.22]
+2026-09-10T13:23:52.592+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1172 ms
+2026-09-10T13:23:52.711+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-09-10T13:23:52.743+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.19.Final
+2026-09-10T13:23:53.008+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-09-10T13:23:53.029+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-09-10T13:23:53.137+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@7872e91f
+2026-09-10T13:23:53.138+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-09-10T13:23:53.187+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:mysql://localhost:3306/auth_db?useSSL=false&serverTimezone=UTC]
+	Database driver: MySQL Connector/J
+	Database dialect: MySQLDialect
+	Database version: 8.0.46
+	Default catalog/schema: auth_db/undefined
+	Autocommit mode: undefined/unknown
+	Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-09-10T13:23:53.740+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-09-10T13:23:53.790+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-09-10T13:23:53.861+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-09-10T13:23:54.195+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-09-10T13:23:54.195+05:30  WARN [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-09-10T13:23:54.799+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8001 (http) with context path '/'
+2026-09-10T13:23:54.811+05:30  INFO [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] com.auth.AuthServiceApplication          : Started AuthServiceApplication in 3.783 seconds (process running for 4.195)
+2026-09-10T13:23:54.813+05:30  WARN [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-09-10T13:23:54.813+05:30  WARN [auth-service,traceId=,spanId=] 693105 --- [auth-service] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
