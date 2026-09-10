@@ -38,7 +38,7 @@ spec:
       containers:
         - name: auth-service
 
-          image: rajvi1023/auth-service:1.0.0
+          image: rajvi1023/auth-service:${IMAGE_TAG}
           imagePullPolicy: IfNotPresent
 
           ports:

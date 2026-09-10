@@ -76,21 +76,18 @@ pipeline {
             steps {
                 dir('auth-service') {
                     sh '''
+                export IMAGE_TAG=${BUILD_NUMBER}
+
                 kubectl apply -f k8s/namespace.yaml
 
-                kubectl apply -f k8s/auth/auth-service.yaml
-                kubectl apply -f k8s/auth/auth-deployment.yaml
-                
                 kubectl apply -f k8s/auth/auth-config.yaml
                 kubectl apply -f k8s/auth/auth-secret.yaml
-                
-                
+                kubectl apply -f k8s/auth/auth-service.yaml
+
+                envsubst < k8s/auth/auth-deployment.yaml | kubectl apply -f -
+
                 kubectl apply -f k8s/auth/auth-hpa.yaml
                 kubectl apply -f k8s/auth/auth-pdb.yaml
-
-                kubectl set image deployment/auth-service \
-                    auth-service=${FULL_IMAGE} \
-                    -n banking
 
                 kubectl rollout status deployment/auth-service \
                     -n banking \
