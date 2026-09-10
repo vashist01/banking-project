@@ -31,7 +31,7 @@ public class SecurityConfig {
                     .authenticationProvider(authenticationProvider(userDetailsService, passwordEncoder))
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers("/api/v1/auth/**").permitAll()
-                            .requestMatchers("/actuator/**").permitAll()
+                            .requestMatchers("/actuator/health/**").permitAll()
                             .anyRequest().authenticated()
                     );
         }
