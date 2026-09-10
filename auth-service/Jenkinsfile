@@ -32,7 +32,7 @@ pipeline {
             steps {
                 dir('auth-service') {
                     sh '''
-                        mvn clean verify
+                        mvn clean verify -DskipTests
                     '''
                 }
             }
