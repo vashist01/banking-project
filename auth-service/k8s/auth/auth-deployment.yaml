@@ -13,6 +13,7 @@ spec:
 
   strategy:
     type: RollingUpdate
+
     rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
@@ -39,6 +40,7 @@ spec:
         - name: auth-service
 
           image: rajvi1023/auth-service:${IMAGE_TAG}
+
           imagePullPolicy: IfNotPresent
 
           ports:
@@ -96,12 +98,10 @@ spec:
               drop:
                 - ALL
 
-          # ADD THIS
           volumeMounts:
             - name: tmp
               mountPath: /tmp
 
-      # ADD THIS
       volumes:
         - name: tmp
           emptyDir: {}
