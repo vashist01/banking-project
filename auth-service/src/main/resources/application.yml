@@ -2,15 +2,11 @@ spring:
   application:
     name: auth-service
 
-api:
-  version: v1 
-
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    
 
     hikari:
       maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
@@ -45,6 +41,9 @@ api:
   cache:
     type: redis
 
+api:
+  version: v1
+
 eureka:
   client:
     service-url:
@@ -67,7 +66,6 @@ management:
     health:
       probes:
         enabled: true
-
 
   health:
     livenessstate:
