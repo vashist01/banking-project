@@ -77,10 +77,14 @@ pipeline {
                 dir('auth-service') {
                     sh '''
                 kubectl apply -f k8s/namespace.yaml
+
+                kubectl apply -f k8s/auth/auth-service.yaml
+                kubectl apply -f k8s/auth/auth-deployment.yaml
+                
                 kubectl apply -f k8s/auth/auth-config.yaml
                 kubectl apply -f k8s/auth/auth-secret.yaml
-                kubectl apply -f k8s/auth/auth-deployment.yaml
-                kubectl apply -f k8s/auth/auth-service.yaml
+                
+                
                 kubectl apply -f k8s/auth/auth-hpa.yaml
                 kubectl apply -f k8s/auth/auth-pdb.yaml
 
