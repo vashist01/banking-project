@@ -39,7 +39,6 @@ spec:
         - name: auth-service
 
           image: rajvi1023/auth-service:1.0.0
-
           imagePullPolicy: IfNotPresent
 
           ports:
@@ -67,7 +66,6 @@ spec:
             httpGet:
               path: /actuator/health
               port: http
-
             initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 3
@@ -77,7 +75,6 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: http
-
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
@@ -87,7 +84,6 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: http
-
             initialDelaySeconds: 30
             periodSeconds: 20
             timeoutSeconds: 3
@@ -99,3 +95,13 @@ spec:
             capabilities:
               drop:
                 - ALL
+
+          # ADD THIS
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+      # ADD THIS
+      volumes:
+        - name: tmp
+          emptyDir: {}
