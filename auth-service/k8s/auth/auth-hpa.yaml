@@ -1,60 +1,45 @@
-apiVersion: autoscalling/v2
-kind: HorizantalPodAutoScaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
 
 metadata:
   name: auth-service-hpa
-  namespace: banking
+  namespace: auth
 
 spec:
   scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
 
-  apiVersion: apps/v1
-  kind: Deployment
-  name: auth-service
+  minReplicas: 3
+  maxReplicas: 10
 
-minRepilicas: 3
-maxRepilicas: 10
-
-
-behavior:
-
-   scaleup: 
-      stabilizationWindowSeconds: 3.
-
-
-      policies: 
-        - type : Percent
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 3
+      policies:
+        - type: Percent
           value: 100
           periodSeconds: 60
 
-
-   scalDown: 
+    scaleDown:
       stabilizationWindowSeconds: 300
-
-
-      policies: 
-        - type: percent
+      policies:
+        - type: Percent
           value: 25
           periodSeconds: 60
 
-
-metrics: 
-   
+  metrics:
     - type: Resource
-
-
-      resource: 
-          name: cpu
-
-          target: 
-            type: Utilization
-            averageUtilization: 70
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 
     - type: Resource
-
       resource:
         name: memory
-
         target:
           type: Utilization
           averageUtilization: 75
