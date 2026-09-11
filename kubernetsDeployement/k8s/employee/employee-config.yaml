@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: employee-config
+  namespace: employee
+
+data:
+
+  DB_URL: "jdbc:mysql://mysql:3306/employeedb?useSSL=false&serverTimezone=UTC"
