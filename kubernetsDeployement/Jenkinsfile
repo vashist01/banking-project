@@ -136,36 +136,67 @@ pipeline {
         // =========================================================
 
         stage('Deploy MySQL') {
-            steps {
-                dir('kubernetsDeployement') {
-                    sh '''
-                        echo "======================================"
-                        echo "DEPLOY MYSQL"
-                        echo "======================================"
+    steps {
+        dir('kubernetsDeployement') {
+            sh '''
+                echo "======================================"
+                echo "DEPLOY MYSQL"
+                echo "======================================"
 
-                        kubectl apply \
-                            -f k8s/namespace.yaml
+                kubectl apply -f k8s/namespace.yaml
 
-                        kubectl apply \
-                            -f k8s/mysql/mysql-secret.yaml
+                kubectl apply \
+                    -f k8s/mysql/mysql-secret.yaml
 
-                        kubectl apply \
-                            -f k8s/mysql/mysql-deployment.yaml
+                kubectl apply \
+                    -f k8s/mysql/mysql-deployment.yaml
 
-                        kubectl apply \
-                            -f k8s/mysql/mysql-service.yaml
+                kubectl apply \
+                    -f k8s/mysql/mysql-service.yaml
 
-                        echo ""
-                        echo "Waiting for MySQL..."
+                echo ""
+                echo "MySQL resources:"
+                kubectl get all -n employee -l app=mysql
 
-                        kubectl rollout status \
-                            deployment/mysql \
-                            -n employee \
-                            --timeout=180s
-                    '''
-                }
-            }
+                echo ""
+                echo "Waiting for MySQL..."
+
+                if ! kubectl rollout status \
+                    deployment/mysql \
+                    -n employee \
+                    --timeout=180s
+                then
+                    echo "======================================"
+                    echo "MYSQL DEPLOYMENT FAILED"
+                    echo "======================================"
+
+                    echo ""
+                    echo "Pods:"
+                    kubectl get pods -n employee -l app=mysql -o wide
+
+                    echo ""
+                    echo "MySQL Logs:"
+                    kubectl logs -n employee -l app=mysql --tail=100 || true
+
+                    echo ""
+                    echo "MySQL Describe:"
+                    kubectl describe pod -n employee -l app=mysql || true
+
+                    echo ""
+                    echo "Kubernetes Events:"
+                    kubectl get events \
+                        -n employee \
+                        --sort-by=.lastTimestamp \
+                        | tail -30
+
+                    exit 1
+                fi
+
+                echo "MySQL is READY!"
+            '''
         }
+    }
+}
 
         // =========================================================
         // 7. DEPLOY EMPLOYEE SERVICE
