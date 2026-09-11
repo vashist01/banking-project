@@ -1,5 +1,4 @@
-# Stage 1: Build
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
@@ -8,13 +7,12 @@ COPY src ./src
 
 RUN mvn clean package -DskipTests
 
-# Stage 2: Run
-FROM eclipse-temurin:17
+FROM eclipse-temurin:21-jre
 
 WORKDIR /auth-service
 
-COPY --from=build /app/target/*.jar auth.jar
+COPY --from=build /app/target/auth.jar auth.jar
 
-EXPOSE 8008
+EXPOSE 8020
 
-ENTRYPOINT ["java","-jar","auth.jar"]
+ENTRYPOINT ["java", "-jar", "auth.jar"]

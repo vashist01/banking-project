@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'rajvi1023/auth-service'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+
+                sh '''
+            echo "=============================="
+            echo "JENKINS WORKSPACE"
+            echo "=============================="
+
+            pwd
+
+            echo "=============================="
+            echo "FILES"
+            echo "=============================="
+
+            find . -maxdepth 3 -type f | sort
+        '''
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                dir('auth-service') {
+                    sh '''
+                        mvn clean verify -DskipTests
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir('auth-service') {
+                    sh '''
+                        docker build \
+                            -t ${FULL_IMAGE} \
+                            .
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([
+            usernamePassword(
+                credentialsId: 'dockerhub',
+                usernameVariable: 'DOCKER_USERNAME',
+                passwordVariable: 'DOCKER_PASSWORD'
+            )
+        ]) {
+                    sh '''
+                echo "Docker Hub user: $DOCKER_USERNAME"
+
+                echo "$DOCKER_PASSWORD" | docker login \
+                    -u "$DOCKER_USERNAME" \
+                    --password-stdin
+
+                docker info | grep Username
+
+                docker push ${FULL_IMAGE}
+
+                docker logout
+            '''
+        }
+            }
+        }
+
+        stage('Deploy Kubernetes') {
+            steps {
+                dir('auth-service') {
+                    sh '''
+                export IMAGE_TAG=${BUILD_NUMBER}
+
+                kubectl apply -f k8s/namespace.yaml
+
+                kubectl apply -f k8s/auth/auth-config.yaml
+                kubectl apply -f k8s/auth/auth-secret.yaml
+                kubectl apply -f k8s/auth/auth-service.yaml
+
+                envsubst < k8s/auth/auth-deployment.yaml | kubectl apply -f -
+
+                kubectl apply -f k8s/auth/auth-hpa.yaml
+                kubectl apply -f k8s/auth/auth-pdb.yaml
+                kubectl apply -f k8s/auth/mysql-service.yaml
+                kubectl rollout status deployment/auth-service \
+                    -n banking \
+                    --timeout=180s
+            '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully: ${FULL_IMAGE}"
+        }
+
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}

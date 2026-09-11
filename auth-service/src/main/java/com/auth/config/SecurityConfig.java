@@ -21,20 +21,23 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
-        {
-            httpSecurity
-                    .csrf(csrf -> csrf.disable())
-                    .sessionManagement(session ->
-                            session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                    .authenticationProvider(authenticationProvider(userDetailsService, passwordEncoder))
-                    .authorizeHttpRequests(auth -> auth
-                            .requestMatchers("/api/v1/auth/**").permitAll()
-                            .requestMatchers("/actuator/**").permitAll()
-                            .anyRequest().authenticated()
-                    );
-        }
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+
+        httpSecurity
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(
+                        authenticationProvider(userDetailsService, passwordEncoder))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/health/**")
+                        .permitAll()
+                        .anyRequest().authenticated());
+
         return httpSecurity.build();
     }
 

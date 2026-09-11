@@ -1,0 +1,283 @@
+pipeline {
+
+    agent any
+
+    environment {
+
+        // Docker Hub
+        IMAGE_NAME = 'rajvi1023/employee-service'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
+    }
+
+    stages {
+
+        // =========================================================
+        // 1. CHECKOUT
+        // =========================================================
+
+        stage('Checkout') {
+
+            steps {
+
+                checkout scm
+
+                sh '''
+                    echo "======================================"
+                    echo "CHECKOUT"
+                    echo "======================================"
+
+                    pwd
+
+                    echo "Files:"
+                    find . -maxdepth 3 -type f | sort
+                '''
+            }
+        }
+
+
+        // =========================================================
+        // 2. BUILD + TEST
+        // =========================================================
+
+        stage('Build & Test') {
+
+            steps {
+
+                dir('kubernetsDeployement') {
+
+                    sh '''
+                        echo "======================================"
+                        echo "MAVEN BUILD & TEST"
+                        echo "======================================"
+
+                        mvn clean verify --DskipTests
+                    '''
+                }
+            }
+        }
+
+
+        // =========================================================
+        // 3. BUILD DOCKER IMAGE
+        // =========================================================
+
+        stage('Docker Build') {
+
+            steps {
+
+                dir('kubernetsDeployement') {
+
+                    sh '''
+                        echo "======================================"
+                        echo "DOCKER BUILD"
+                        echo "======================================"
+
+                        echo "Building image:"
+                        echo "${FULL_IMAGE}"
+
+                        docker build \
+                            -t ${FULL_IMAGE} \
+                            .
+                    '''
+                }
+            }
+        }
+
+
+        // =========================================================
+        // 4. PUSH TO DOCKER HUB
+        // =========================================================
+
+        stage('Docker Push') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "======================================"
+                        echo "DOCKER PUSH"
+                        echo "======================================"
+
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        docker push ${FULL_IMAGE}
+
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+
+        // =========================================================
+        // 5. DEPLOY MYSQL
+        // =========================================================
+
+        stage('Deploy MySQL') {
+
+            steps {
+
+                dir('kubernetsDeployement') {
+
+                    sh '''
+                        echo "======================================"
+                        echo "DEPLOY MYSQL"
+                        echo "======================================"
+
+                        kubectl apply -f k8s/namespace.yaml
+
+                        kubectl apply \
+                            -f k8s/mysql/mysql-secret.yaml
+
+                        kubectl apply \
+                            -f k8s/mysql/mysql-deployment.yaml
+
+                        kubectl apply \
+                            -f k8s/mysql/mysql-service.yaml
+
+                        echo "Waiting for MySQL..."
+
+                        kubectl rollout status \
+                            deployment/mysql \
+                            -n employee \
+                            --timeout=180s
+                    '''
+                }
+            }
+        }
+
+
+        // =========================================================
+        // 6. DEPLOY EMPLOYEE APPLICATION
+        // =========================================================
+
+        stage('Deploy Employee Service') {
+
+            steps {
+
+                dir('kubernetsDeployement') {
+
+                    sh '''
+                        echo "======================================"
+                        echo "DEPLOY EMPLOYEE SERVICE"
+                        echo "======================================"
+
+                        export IMAGE_TAG=${BUILD_NUMBER}
+
+                        echo "Deploying image:"
+                        echo "${FULL_IMAGE}"
+
+                        kubectl apply \
+                            -f k8s/employee/employee-config.yaml
+
+                        kubectl apply \
+                            -f k8s/employee/employee-secret.yaml
+
+                        kubectl apply \
+                            -f k8s/employee/employee-service.yaml
+
+                        envsubst < \
+                            k8s/employee/employee-deployment.yaml | \
+                            kubectl apply -f -
+
+                        echo "Waiting for Employee Service..."
+
+                        kubectl rollout status \
+                            deployment/employee-service \
+                            -n employee \
+                            --timeout=180s
+                    '''
+                }
+            }
+        }
+
+
+        // =========================================================
+        // 7. VERIFY DEPLOYMENT
+        // =========================================================
+
+        stage('Verify Kubernetes') {
+
+            steps {
+
+                sh '''
+                    echo "======================================"
+                    echo "KUBERNETES STATUS"
+                    echo "======================================"
+
+                    echo "Deployments:"
+                    kubectl get deployments -n employee
+
+                    echo ""
+                    echo "Pods:"
+                    kubectl get pods -n employee -o wide
+
+                    echo ""
+                    echo "Services:"
+                    kubectl get services -n employee
+
+                    echo ""
+                    echo "======================================"
+                    echo "DEPLOYMENT COMPLETE"
+                    echo "======================================"
+                '''
+            }
+        }
+    }
+
+
+    // =============================================================
+    // POST ACTIONS
+    // =============================================================
+
+    post {
+
+        success {
+
+            echo """
+            ======================================
+            CI/CD SUCCESS
+            ======================================
+
+            Application : Employee Service
+            Image       : ${FULL_IMAGE}
+            Build       : ${BUILD_NUMBER}
+
+            Deployment completed successfully.
+            ======================================
+            """
+        }
+
+        failure {
+
+            echo """
+            ======================================
+            CI/CD FAILED
+            ======================================
+
+            Application : Employee Service
+            Build       : ${BUILD_NUMBER}
+
+            Please check Jenkins logs.
+            ======================================
+            """
+        }
+
+        always {
+
+            echo "Jenkins Build: ${BUILD_NUMBER}"
+            echo "Result: ${currentBuild.currentResult}"
+        }
+    }
+}
+
