@@ -8,7 +8,6 @@ pipeline {
     }
 
     stages {
-
         // =========================================================
         // 1. BUILD
         // =========================================================
@@ -33,56 +32,74 @@ pipeline {
         // 2. DOCKER BUILD
         // =========================================================
 
-        stage('Docker Build') {
+        stage('Maven Build') {
             steps {
                 dir('auth-service') {
                     sh '''
-                        set -e
+                set -e
+                echo "======================================"
+                echo "MAVEN BUILD"
+                echo "======================================"
 
-                        echo "======================================"
-                        echo "DOCKER BUILD"
-                        echo "======================================"
+                mvn clean package -DskipTests
 
-                        echo "Building image:"
-                        echo "${FULL_IMAGE}"
-
-                        docker build \
-                            -t ${FULL_IMAGE} \
-                            .
-                    '''
+                echo "Generated JAR:"
+                ls -lh target/auth.jar
+            '''
                 }
             }
         }
 
-        // =========================================================
-        // 3. DOCKER PUSH
-        // =========================================================
+        stage('Docker Build') {
+            steps {
+                dir('auth-service') {
+                    sh '''
+                set -e
+
+                echo "======================================"
+                echo "DOCKER BUILD"
+                echo "======================================"
+
+                echo "Building image:"
+                echo "${FULL_IMAGE}"
+
+                docker build \
+                    --progress=plain \
+                    -t "${FULL_IMAGE}" \
+                    .
+
+                echo "Docker image created:"
+                docker images "${FULL_IMAGE}"
+            '''
+                }
+            }
+        }
 
         stage('Docker Push') {
             steps {
                 withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub',
-                        usernameVariable: 'DOCKER_USERNAME',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
+            usernamePassword(
+                credentialsId: 'dockerhub',
+                usernameVariable: 'DOCKER_USERNAME',
+                passwordVariable: 'DOCKER_PASSWORD'
+            )
+        ]) {
                     sh '''
-                        set -e
+                set -e
 
-                        echo "======================================"
-                        echo "DOCKER PUSH"
-                        echo "======================================"
+                echo "======================================"
+                echo "DOCKER PUSH"
+                echo "======================================"
 
-                        echo "$DOCKER_PASSWORD" | docker login \
-                            -u "$DOCKER_USERNAME" \
-                            --password-stdin
+                echo "$DOCKER_PASSWORD" | docker login \
+                    -u "$DOCKER_USERNAME" \
+                    --password-stdin
 
-                        docker push ${FULL_IMAGE}
+                docker push "${FULL_IMAGE}"
 
-                        docker logout
-                    '''
-                }
+                docker logout
+            '''
+        }
             }
         }
 
@@ -501,7 +518,6 @@ pipeline {
     }
 
     post {
-
         success {
             echo """
             ======================================
