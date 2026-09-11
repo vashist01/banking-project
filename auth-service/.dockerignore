@@ -1,8 +1,9 @@
-target/
+target/*
+!target/auth.jar
+
 .git/
 .idea/
 .vscode/
 *.iml
 Dockerfile
 docker-compose.yml
-README.md
