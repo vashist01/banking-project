@@ -1,9 +1,7 @@
 pipeline {
-
     agent any
 
     environment {
-
         // Docker Hub
         IMAGE_NAME = 'rajvi1023/employee-service'
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -11,15 +9,12 @@ pipeline {
     }
 
     stages {
-
         // =========================================================
         // 1. CHECKOUT
         // =========================================================
 
         stage('Checkout') {
-
             steps {
-
                 checkout scm
 
                 sh '''
@@ -35,39 +30,31 @@ pipeline {
             }
         }
 
-
         // =========================================================
         // 2. BUILD + TEST
         // =========================================================
 
         stage('Build & Test') {
-
             steps {
-
                 dir('kubernetsDeployement') {
-
                     sh '''
-                        echo "======================================"
-                        echo "MAVEN BUILD & TEST"
-                        echo "======================================"
+                echo "======================================"
+                echo "MAVEN BUILD"
+                echo "======================================"
 
-                        mvn clean verify --DskipTests
-                    '''
+                mvn clean verify -DskipTests
+            '''
                 }
             }
         }
-
 
         // =========================================================
         // 3. BUILD DOCKER IMAGE
         // =========================================================
 
         stage('Docker Build') {
-
             steps {
-
                 dir('kubernetsDeployement') {
-
                     sh '''
                         echo "======================================"
                         echo "DOCKER BUILD"
@@ -84,15 +71,12 @@ pipeline {
             }
         }
 
-
         // =========================================================
         // 4. PUSH TO DOCKER HUB
         // =========================================================
 
         stage('Docker Push') {
-
             steps {
-
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dockerhub',
@@ -100,7 +84,6 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
-
                     sh '''
                         echo "======================================"
                         echo "DOCKER PUSH"
@@ -118,17 +101,13 @@ pipeline {
             }
         }
 
-
         // =========================================================
         // 5. DEPLOY MYSQL
         // =========================================================
 
         stage('Deploy MySQL') {
-
             steps {
-
                 dir('kubernetsDeployement') {
-
                     sh '''
                         echo "======================================"
                         echo "DEPLOY MYSQL"
@@ -156,17 +135,13 @@ pipeline {
             }
         }
 
-
         // =========================================================
         // 6. DEPLOY EMPLOYEE APPLICATION
         // =========================================================
 
         stage('Deploy Employee Service') {
-
             steps {
-
                 dir('kubernetsDeployement') {
-
                     sh '''
                         echo "======================================"
                         echo "DEPLOY EMPLOYEE SERVICE"
@@ -201,15 +176,12 @@ pipeline {
             }
         }
 
-
         // =========================================================
         // 7. VERIFY DEPLOYMENT
         // =========================================================
 
         stage('Verify Kubernetes') {
-
             steps {
-
                 sh '''
                     echo "======================================"
                     echo "KUBERNETES STATUS"
@@ -235,15 +207,12 @@ pipeline {
         }
     }
 
-
     // =============================================================
     // POST ACTIONS
     // =============================================================
 
     post {
-
         success {
-
             echo """
             ======================================
             CI/CD SUCCESS
@@ -259,7 +228,6 @@ pipeline {
         }
 
         failure {
-
             echo """
             ======================================
             CI/CD FAILED
@@ -274,10 +242,8 @@ pipeline {
         }
 
         always {
-
             echo "Jenkins Build: ${BUILD_NUMBER}"
             echo "Result: ${currentBuild.currentResult}"
         }
     }
 }
-
