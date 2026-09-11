@@ -12,20 +12,20 @@ pipeline {
         // 1. CHECKOUT
         // =========================================================
 
-        stage('Checkout') {
-            steps {
-                checkout scm
+        // stage('Checkout') {
+        //     steps {
+        //         checkout scm
 
-                sh '''
-                    echo "======================================"
-                    echo "CHECKOUT"
-                    echo "======================================"
+        //         sh '''
+        //             echo "======================================"
+        //             echo "CHECKOUT"
+        //             echo "======================================"
 
-                    pwd
-                    find . -maxdepth 3 -type f | sort
-                '''
-            }
-        }
+        //             pwd
+        //             find . -maxdepth 3 -type f | sort
+        //         '''
+        //     }
+        // }
 
         // =========================================================
         // 2. BUILD
