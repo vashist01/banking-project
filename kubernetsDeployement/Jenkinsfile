@@ -2,13 +2,13 @@ pipeline {
     agent any
 
     environment {
-        // Docker Hub
         IMAGE_NAME = 'rajvi1023/employee-service'
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
         FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
     stages {
+
         // =========================================================
         // 1. CHECKOUT
         // =========================================================
@@ -23,33 +23,31 @@ pipeline {
                     echo "======================================"
 
                     pwd
-
-                    echo "Files:"
                     find . -maxdepth 3 -type f | sort
                 '''
             }
         }
 
         // =========================================================
-        // 2. BUILD + TEST
+        // 2. BUILD
         // =========================================================
 
-        stage('Build & Test') {
+        stage('Build') {
             steps {
                 dir('kubernetsDeployement') {
                     sh '''
-                echo "======================================"
-                echo "MAVEN BUILD"
-                echo "======================================"
+                        echo "======================================"
+                        echo "MAVEN BUILD"
+                        echo "======================================"
 
-                mvn clean verify -DskipTests
-            '''
+                        mvn clean verify -DskipTests
+                    '''
                 }
             }
         }
 
         // =========================================================
-        // 3. BUILD DOCKER IMAGE
+        // 3. DOCKER BUILD
         // =========================================================
 
         stage('Docker Build') {
@@ -60,8 +58,7 @@ pipeline {
                         echo "DOCKER BUILD"
                         echo "======================================"
 
-                        echo "Building image:"
-                        echo "${FULL_IMAGE}"
+                        echo "Building image: ${FULL_IMAGE}"
 
                         docker build \
                             -t ${FULL_IMAGE} \
@@ -72,7 +69,7 @@ pipeline {
         }
 
         // =========================================================
-        // 4. PUSH TO DOCKER HUB
+        // 4. DOCKER PUSH
         // =========================================================
 
         stage('Docker Push') {
@@ -102,7 +99,40 @@ pipeline {
         }
 
         // =========================================================
-        // 5. DEPLOY MYSQL
+        // 5. VERIFY KUBERNETES
+        // =========================================================
+
+        stage('Verify Kubernetes Connection') {
+            steps {
+                sh '''
+                    echo "======================================"
+                    echo "VERIFY KUBERNETES"
+                    echo "======================================"
+
+                    echo "kubectl version:"
+                    kubectl version --client
+
+                    echo ""
+                    echo "Current context:"
+                    kubectl config current-context
+
+                    echo ""
+                    echo "Cluster info:"
+                    kubectl cluster-info
+
+                    echo ""
+                    echo "Nodes:"
+                    kubectl get nodes
+
+                    echo ""
+                    echo "Namespaces:"
+                    kubectl get namespaces
+                '''
+            }
+        }
+
+        // =========================================================
+        // 6. DEPLOY MYSQL
         // =========================================================
 
         stage('Deploy MySQL') {
@@ -113,7 +143,8 @@ pipeline {
                         echo "DEPLOY MYSQL"
                         echo "======================================"
 
-                        kubectl apply -f k8s/namespace.yaml
+                        kubectl apply \
+                            -f k8s/namespace.yaml
 
                         kubectl apply \
                             -f k8s/mysql/mysql-secret.yaml
@@ -124,6 +155,7 @@ pipeline {
                         kubectl apply \
                             -f k8s/mysql/mysql-service.yaml
 
+                        echo ""
                         echo "Waiting for MySQL..."
 
                         kubectl rollout status \
@@ -136,7 +168,7 @@ pipeline {
         }
 
         // =========================================================
-        // 6. DEPLOY EMPLOYEE APPLICATION
+        // 7. DEPLOY EMPLOYEE SERVICE
         // =========================================================
 
         stage('Deploy Employee Service') {
@@ -165,6 +197,7 @@ pipeline {
                             k8s/employee/employee-deployment.yaml | \
                             kubectl apply -f -
 
+                        echo ""
                         echo "Waiting for Employee Service..."
 
                         kubectl rollout status \
@@ -177,7 +210,7 @@ pipeline {
         }
 
         // =========================================================
-        // 7. VERIFY DEPLOYMENT
+        // 8. VERIFY
         // =========================================================
 
         stage('Verify Kubernetes') {
@@ -207,11 +240,8 @@ pipeline {
         }
     }
 
-    // =============================================================
-    // POST ACTIONS
-    // =============================================================
-
     post {
+
         success {
             echo """
             ======================================
@@ -223,6 +253,7 @@ pipeline {
             Build       : ${BUILD_NUMBER}
 
             Deployment completed successfully.
+
             ======================================
             """
         }
@@ -237,6 +268,7 @@ pipeline {
             Build       : ${BUILD_NUMBER}
 
             Please check Jenkins logs.
+
             ======================================
             """
         }
