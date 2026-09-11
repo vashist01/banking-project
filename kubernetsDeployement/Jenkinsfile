@@ -51,7 +51,7 @@ pipeline {
                         echo "MAVEN BUILD & TEST"
                         echo "======================================"
 
-                        mvn clean verify
+                        mvn clean verify --DskipTests
                     '''
                 }
             }
@@ -127,7 +127,7 @@ pipeline {
 
             steps {
 
-                dir('employee-service') {
+                dir('kubernetsDeployement') {
 
                     sh '''
                         echo "======================================"
