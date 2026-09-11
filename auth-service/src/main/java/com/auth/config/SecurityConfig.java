@@ -19,47 +19,50 @@ import org.springframework.security.web.SecurityFilterChain;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final UserDetailsService userDetailsService;
-    private final PasswordEncoder passwordEncoder;
+        private final UserDetailsService userDetailsService;
+        private final PasswordEncoder passwordEncoder;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
 
-        httpSecurity
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(
-                        authenticationProvider(userDetailsService, passwordEncoder))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll().requestMatchers(
-                                "/actuator/health",
-                                "/actuator/health/**")
-                        .permitAll()
+                httpSecurity
+                                .csrf(csrf -> csrf.disable())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authenticationProvider(
+                                                authenticationProvider(userDetailsService, passwordEncoder))
+                                .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html")
-                        .permitAll()
-                        .anyRequest().authenticated());
+                                                // Actuator FIRST
+                                                .requestMatchers("/actuator/**").permitAll()
 
-        return httpSecurity.build();
-    }
+                                                .requestMatchers("/api/v1/auth/**").permitAll()
 
-    @Bean
-    public AuthenticationProvider authenticationProvider(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
+                                                .requestMatchers(
+                                                                "/v3/api-docs/**",
+                                                                "/swagger-ui/**",
+                                                                "/swagger-ui.html")
+                                                .permitAll()
 
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+                                                .anyRequest().authenticated());
 
-        provider.setPasswordEncoder(passwordEncoder);
-        return provider;
-    }
+                return httpSecurity.build();
+        }
 
-    @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
-    }
+        @Bean
+        public AuthenticationProvider authenticationProvider(
+                        UserDetailsService userDetailsService,
+                        PasswordEncoder passwordEncoder) {
+
+                DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+
+                provider.setPasswordEncoder(passwordEncoder);
+                return provider;
+        }
+
+        @Bean
+        public AuthenticationManager authenticationManager(
+                        AuthenticationConfiguration configuration) throws Exception {
+                return configuration.getAuthenticationManager();
+        }
 }

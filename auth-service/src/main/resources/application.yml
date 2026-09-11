@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: ${DB_URL}
-    username: ${username}
-    password: ${password}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
     hikari:
