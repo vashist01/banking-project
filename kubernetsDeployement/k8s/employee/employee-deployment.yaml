@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: employee-service
+  namespace: employee
 
 spec:
   replicas: 3
@@ -21,7 +22,7 @@ spec:
 
         - name: employee-service
 
-          image: employee-service:1.0
+          image: rajvi1023/employee-service:${IMAGE_TAG}
 
           imagePullPolicy: IfNotPresent
 
@@ -29,9 +30,8 @@ spec:
             - containerPort: 8080
 
           env:
-
             - name: DB_URL
-              value: jdbc:mysql://mysql:3306/employeedb?useSSL=false&serverTimezone=UTC
+              value: jdbc:mysql://mysql-service:3306/employeedb?useSSL=false&serverTimezone=UTC
 
             - name: DB_USERNAME
               valueFrom:
@@ -49,7 +49,6 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8080
-
             initialDelaySeconds: 30
             periodSeconds: 10
 
@@ -57,6 +56,5 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-
             initialDelaySeconds: 60
             periodSeconds: 20
