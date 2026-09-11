@@ -98,48 +98,7 @@ pipeline {
                     '''
                 }
             }
-        }
-
-        // =========================================================
-        // 4. UPDATE MINIKUBE CONTEXT
-        // =========================================================
-
-        stage('Prepare Kubernetes') {
-            steps {
-                sh '''
-            set -e
-
-            echo "======================================"
-            echo "PREPARE KUBERNETES"
-            echo "======================================"
-
-            echo "Current context:"
-            kubectl config current-context
-
-            echo ""
-            echo "Current Kubernetes server:"
-            kubectl config view --minify \
-                -o jsonpath='{.clusters[0].cluster.server}'
-            echo ""
-
-            echo ""
-            echo "Testing Kubernetes API:"
-            kubectl cluster-info
-
-            echo ""
-            echo "Nodes:"
-            kubectl get nodes
-
-            echo ""
-            echo "Namespaces:"
-            kubectl get namespaces
-
-            echo ""
-            echo "Kubernetes is ready!"
-        '''
-            }
-        }
-
+        } 
         // =========================================================
         // 5. DEPLOY BANKING NAMESPACE
         // =========================================================
