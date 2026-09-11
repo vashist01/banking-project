@@ -10,10 +10,10 @@ pipeline {
     stages {
 
         // =========================================================
-        // 1. BUILD
+        // 1. MAVEN BUILD
         // =========================================================
 
-        stage('Build') {
+        stage('Maven Build') {
             steps {
                 dir('auth-service') {
                     sh '''
@@ -23,11 +23,16 @@ pipeline {
                         echo "MAVEN BUILD"
                         echo "======================================"
 
-                        mvn clean verify -DskipTests
+                        mvn clean package -DskipTests
+
+                        echo ""
+                        echo "Generated JAR:"
+                        ls -lh target/auth.jar
                     '''
                 }
             }
         }
+
 
         // =========================================================
         // 2. DOCKER BUILD
@@ -43,16 +48,22 @@ pipeline {
                         echo "DOCKER BUILD"
                         echo "======================================"
 
-                        echo "Building image:"
+                        echo "Image:"
                         echo "${FULL_IMAGE}"
 
                         docker build \
-                            -t ${FULL_IMAGE} \
+                            --progress=plain \
+                            -t "${FULL_IMAGE}" \
                             .
+
+                        echo ""
+                        echo "Docker image created:"
+                        docker images "${FULL_IMAGE}"
                     '''
                 }
             }
         }
+
 
         // =========================================================
         // 3. DOCKER PUSH
@@ -64,62 +75,77 @@ pipeline {
                     usernamePassword(
                         credentialsId: 'dockerhub',
                         usernameVariable: 'DOCKER_USERNAME',
-                            passwordVariable: 'DOCKER_PASSWORD'
-                        )
-                    ]) {
-                        sh '''
-                            set -e
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set -e
 
-                            echo "======================================"
-                            echo "DOCKER PUSH"
-                            echo "======================================"
+                        echo "======================================"
+                        echo "DOCKER PUSH"
+                        echo "======================================"
 
-                            echo "$DOCKER_PASSWORD" | docker login \
-                                -u "$DOCKER_USERNAME" \
-                                --password-stdin
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
 
-                            docker push ${FULL_IMAGE}
+                        docker push "${FULL_IMAGE}"
 
-                            docker logout
-                        '''
-                    }
+                        docker logout
+                    '''
                 }
             }
+        }
+
 
         // =========================================================
-        // 4. VERIFY KUBERNETES
+        // 4. UPDATE MINIKUBE CONTEXT
         // =========================================================
 
-        stage('Verify Kubernetes Connection') {
+        stage('Prepare Kubernetes') {
             steps {
                 sh '''
                     set -e
 
                     echo "======================================"
-                    echo "VERIFY KUBERNETES"
+                    echo "PREPARE KUBERNETES"
                     echo "======================================"
 
-                    echo "kubectl version:"
-                    kubectl version --client
-
-                    echo ""
                     echo "Current context:"
                     kubectl config current-context
 
                     echo ""
-                    echo "Cluster info:"
+                    echo "Current Kubernetes server:"
+                    kubectl config view --minify \
+                        -o jsonpath='{.clusters[0].cluster.server}'
+                    echo ""
+
+                    echo ""
+                    echo "Updating Minikube context..."
+
+                    minikube update-context
+
+                    echo ""
+                    echo "Updated Kubernetes server:"
+                    kubectl config view --minify \
+                        -o jsonpath='{.clusters[0].cluster.server}'
+                    echo ""
+
+                    echo ""
+                    echo "Minikube status:"
+                    minikube status
+
+                    echo ""
+                    echo "Testing Kubernetes:"
                     kubectl cluster-info
 
                     echo ""
                     echo "Nodes:"
                     kubectl get nodes
-
-                    echo ""
-                    echo "Namespaces:"
-                    kubectl get namespaces
                 '''
             }
         }
+
 
         // =========================================================
         // 5. DEPLOY BANKING NAMESPACE
@@ -131,10 +157,6 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "======================================"
-                        echo "DEPLOY BANKING NAMESPACE"
-                        echo "======================================"
-
                         kubectl apply \
                             -f k8s/auth/namespace.yaml
 
@@ -144,8 +166,9 @@ pipeline {
             }
         }
 
+
         // =========================================================
-        // 6. DEPLOY AUTH MYSQL
+        // 6. DEPLOY MYSQL
         // =========================================================
 
         stage('Deploy Auth MySQL') {
@@ -168,79 +191,42 @@ pipeline {
                             -f k8s/mysql/mysql-service.yaml
 
                         echo ""
-                        echo "MySQL resources:"
-                        kubectl get all \
-                            -n banking \
-                            -l app=mysql
+                        echo "MySQL deployment:"
+                        kubectl get deployment mysql -n banking
 
                         echo ""
-                        echo "MySQL Service:"
-                        kubectl get svc \
+                        echo "MySQL pod:"
+                        kubectl get pods \
                             -n banking \
-                            mysql
+                            -l app=mysql \
+                            -o wide
 
                         echo ""
-                        echo "Waiting for MySQL..."
+                        echo "MySQL service:"
+                        kubectl get svc mysql -n banking
 
-                        if ! kubectl rollout status \
+                        echo ""
+                        echo "Waiting for MySQL deployment..."
+
+                        kubectl rollout status \
                             deployment/mysql \
                             -n banking \
                             --timeout=180s
-                        then
-
-                            echo "======================================"
-                            echo "AUTH MYSQL DEPLOYMENT FAILED"
-                            echo "======================================"
-
-                            echo ""
-                            echo "Pods:"
-                            kubectl get pods \
-                                -n banking \
-                                -l app=mysql \
-                                -o wide
-
-                            echo ""
-                            echo "Services:"
-                            kubectl get svc \
-                                -n banking
-
-                            echo ""
-                            echo "Endpoints:"
-                            kubectl get endpoints \
-                                -n banking
-
-                            echo ""
-                            echo "MySQL Logs:"
-                            kubectl logs \
-                                -n banking \
-                                -l app=mysql \
-                                --tail=100 || true
-
-                            echo ""
-                            echo "MySQL Describe:"
-                            kubectl describe pod \
-                                -n banking \
-                                -l app=mysql || true
-
-                            echo ""
-                            echo "Kubernetes Events:"
-                            kubectl get events \
-                                -n banking \
-                                --sort-by=.lastTimestamp \
-                                | tail -30
-
-                            exit 1
-                        fi
 
                         echo ""
-                        echo "MySQL is READY!"
+                        echo "MySQL is READY"
+
+                        echo ""
+                        echo "MySQL endpoints:"
+                        kubectl get endpoints mysql -n banking
                     '''
                 }
             }
         }
 
+
         // =========================================================
-        // 7. DEPLOY AUTH CONFIG + SECRET
+        // 7. DEPLOY AUTH CONFIGURATION
         // =========================================================
 
         stage('Deploy Auth Configuration') {
@@ -259,14 +245,10 @@ pipeline {
                         kubectl apply \
                             -f k8s/auth/auth-service-secret.yaml
 
-                        echo ""
-                        echo "Auth ConfigMap:"
                         kubectl get configmap \
                             auth-service-config \
                             -n banking
 
-                        echo ""
-                        echo "Auth Secret:"
                         kubectl get secret \
                             auth-service-secret \
                             -n banking
@@ -274,6 +256,7 @@ pipeline {
                 }
             }
         }
+
 
         // =========================================================
         // 8. DEPLOY AUTH SERVICE
@@ -289,23 +272,21 @@ pipeline {
                         echo "DEPLOY AUTH SERVICE"
                         echo "======================================"
 
-                        export IMAGE_TAG=${BUILD_NUMBER}
+                        export IMAGE_TAG="${BUILD_NUMBER}"
 
-                        echo "Deploying image:"
+                        echo "Deploying:"
                         echo "${FULL_IMAGE}"
-
-                        echo ""
-                        echo "Applying Auth Service Deployment..."
 
                         envsubst < \
                             k8s/auth/auth-service-deployment.yaml | \
                             kubectl apply -f -
 
-                        echo ""
-                        echo "Applying Auth Service Service..."
-
                         kubectl apply \
                             -f k8s/auth/auth-service.yaml
+
+                        echo ""
+                        echo "Deployment:"
+                        kubectl get deployment auth-service -n banking
 
                         echo ""
                         echo "Waiting for Auth Service..."
@@ -317,45 +298,33 @@ pipeline {
                         then
 
                             echo "======================================"
-                            echo "AUTH SERVICE DEPLOYMENT FAILED"
+                            echo "AUTH SERVICE FAILED"
                             echo "======================================"
-
-                            echo ""
-                            echo "Deployments:"
-                            kubectl get deployments \
-                                -n banking
 
                             echo ""
                             echo "Pods:"
                             kubectl get pods \
                                 -n banking \
+                                -l app=auth-service \
                                 -o wide
 
                             echo ""
                             echo "Services:"
-                            kubectl get svc \
-                                -n banking
+                            kubectl get svc -n banking
 
                             echo ""
                             echo "Endpoints:"
-                            kubectl get endpoints \
-                                -n banking
+                            kubectl get endpoints -n banking
 
                             echo ""
-                            echo "Auth Logs:"
+                            echo "Auth logs:"
                             kubectl logs \
                                 -n banking \
                                 -l app=auth-service \
-                                --tail=150 || true
+                                --tail=200 || true
 
                             echo ""
-                            echo "Auth Describe:"
-                            kubectl describe deployment \
-                                auth-service \
-                                -n banking || true
-
-                            echo ""
-                            echo "Kubernetes Events:"
+                            echo "Auth events:"
                             kubectl get events \
                                 -n banking \
                                 --sort-by=.lastTimestamp \
@@ -371,6 +340,7 @@ pipeline {
             }
         }
 
+
         // =========================================================
         // 9. DEPLOY HPA
         // =========================================================
@@ -381,19 +351,15 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "======================================"
-                        echo "DEPLOY AUTH HPA"
-                        echo "======================================"
-
                         kubectl apply \
                             -f k8s/auth/auth-service-hpa.yaml
 
-                        kubectl get hpa \
-                            -n banking
+                        kubectl get hpa -n banking
                     '''
                 }
             }
         }
+
 
         // =========================================================
         // 10. DEPLOY PDB
@@ -405,22 +371,18 @@ pipeline {
                     sh '''
                         set -e
 
-                        echo "======================================"
-                        echo "DEPLOY AUTH PDB"
-                        echo "======================================"
-
                         kubectl apply \
                             -f k8s/auth/auth-service-pdb.yaml
 
-                        kubectl get pdb \
-                            -n banking
+                        kubectl get pdb -n banking
                     '''
                 }
             }
         }
 
+
         // =========================================================
-        // 11. VERIFY KUBERNETES
+        // 11. FINAL VERIFICATION
         // =========================================================
 
         stage('Verify Kubernetes') {
@@ -434,34 +396,27 @@ pipeline {
 
                     echo ""
                     echo "Deployments:"
-                    kubectl get deployments \
-                        -n banking
+                    kubectl get deployments -n banking
 
                     echo ""
                     echo "Pods:"
-                    kubectl get pods \
-                        -n banking \
-                        -o wide
+                    kubectl get pods -n banking -o wide
 
                     echo ""
                     echo "Services:"
-                    kubectl get services \
-                        -n banking
+                    kubectl get services -n banking
 
                     echo ""
                     echo "Endpoints:"
-                    kubectl get endpoints \
-                        -n banking
+                    kubectl get endpoints -n banking
 
                     echo ""
                     echo "HPA:"
-                    kubectl get hpa \
-                        -n banking
+                    kubectl get hpa -n banking
 
                     echo ""
                     echo "PDB:"
-                    kubectl get pdb \
-                        -n banking
+                    kubectl get pdb -n banking
 
                     echo ""
                     echo "======================================"
@@ -471,8 +426,9 @@ pipeline {
             }
         }
 
+
         // =========================================================
-        // 12. GET AUTH SERVICE URL
+        // 12. GET SERVICE URL
         // =========================================================
 
         stage('Get Auth Service URL') {
@@ -482,9 +438,7 @@ pipeline {
                     echo "AUTH SERVICE URL"
                     echo "======================================"
 
-                    kubectl get svc \
-                        auth-service \
-                        -n banking
+                    kubectl get svc auth-service -n banking
 
                     echo ""
 
@@ -492,16 +446,17 @@ pipeline {
                         auth-service \
                         -n banking \
                         --url || true
-
-                    echo ""
-                    echo "======================================"
                 '''
             }
         }
     }
 
-    post {
 
+    // =========================================================
+    // POST
+    // =========================================================
+
+    post {
         success {
             echo """
             ======================================
@@ -514,8 +469,6 @@ pipeline {
             Namespace   : banking
             Port        : 8001
 
-            Deployment completed successfully.
-
             ======================================
             """
         }
@@ -527,10 +480,9 @@ pipeline {
             ======================================
 
             Application : Auth Service
+            Image       : ${FULL_IMAGE}
             Build       : ${BUILD_NUMBER}
             Namespace   : banking
-
-            Please check Jenkins logs.
 
             ======================================
             """
