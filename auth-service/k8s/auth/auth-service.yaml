@@ -3,9 +3,11 @@ kind: Service
 
 metadata:
   name: auth-service
-  namespace: banking
+  namespace: auth-service
 
 spec:
+  type: NodePort
+
   selector:
     app: auth-service
 
@@ -13,5 +15,4 @@ spec:
     - protocol: TCP
       port: 8001
       targetPort: 8001
-
-  type: ClusterIP
+      nodePort: 30081

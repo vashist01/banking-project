@@ -3,10 +3,7 @@ kind: Deployment
 
 metadata:
   name: auth-service
-  namespace: banking
-
-  labels:
-    app: auth-service
+  namespace: auth-service
 
 spec:
   replicas: 3
@@ -30,13 +27,8 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
 
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1001
-        runAsGroup: 1001
-        fsGroup: 1001
-
       containers:
+
         - name: auth-service
 
           image: rajvi1023/auth-service:${IMAGE_TAG}
@@ -48,12 +40,31 @@ spec:
               containerPort: 8001
               protocol: TCP
 
-          envFrom:
-            - configMapRef:
-                name: auth-service-config
+          env:
 
-            - secretRef:
-                name: auth-service-secret
+            - name: DB_URL
+              value: "jdbc:mysql://mysql:3306/auth_db?useSSL=false&serverTimezone=UTC"
+
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret
+                  key: username
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret
+                  key: password
+
+            - name: REDIS_HOST
+              value: "redis"
+
+            - name: REDIS_PORT
+              value: "6379"
+
+            - name: EUREKA_URL
+              value: "http://eureka-server:8761/eureka/"
 
           resources:
             requests:
@@ -68,6 +79,7 @@ spec:
             httpGet:
               path: /actuator/health
               port: http
+
             initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 3
@@ -77,6 +89,7 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: http
+
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
@@ -86,22 +99,8 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: http
+
             initialDelaySeconds: 30
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
-
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
-
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
-
-      volumes:
-        - name: tmp
-          emptyDir: {}
