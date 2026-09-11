@@ -8,7 +8,6 @@ pipeline {
     }
 
     stages {
-
         // =========================================================
         // 1. CHECKOUT
         // =========================================================
@@ -136,9 +135,9 @@ pipeline {
         // =========================================================
 
         stage('Deploy MySQL') {
-    steps {
-        dir('kubernetsDeployement') {
-            sh '''
+            steps {
+                dir('kubernetsDeployement') {
+                    sh '''
                 echo "======================================"
                 echo "DEPLOY MYSQL"
                 echo "======================================"
@@ -194,9 +193,9 @@ pipeline {
 
                 echo "MySQL is READY!"
             '''
+                }
+            }
         }
-    }
-}
 
         // =========================================================
         // 7. DEPLOY EMPLOYEE SERVICE
@@ -223,6 +222,9 @@ pipeline {
 
                         kubectl apply \
                             -f k8s/employee/employee-service.yaml
+
+                            kubectl apply \
+                            -f k8s/employee/employee-db-secret.yaml
 
                         envsubst < \
                             k8s/employee/employee-deployment.yaml | \
@@ -272,7 +274,6 @@ pipeline {
     }
 
     post {
-
         success {
             echo """
             ======================================
