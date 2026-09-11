@@ -6,7 +6,7 @@ metadata:
   namespace: banking
 
 data:
-  DB_URL: "jdbc:mysql://mysql:3306/auth_db?useSSL=false&serverTimezone=UTC"
+  DB_URL: "jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
 
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
