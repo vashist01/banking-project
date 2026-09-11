@@ -305,7 +305,7 @@ pipeline {
                         echo "Applying Auth Service Service..."
 
                         kubectl apply \
-                            -f k8s/auth/auth-service-service.yaml
+                            -f k8s/auth/auth-service.yaml
 
                         echo ""
                         echo "Waiting for Auth Service..."
