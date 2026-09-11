@@ -4,21 +4,37 @@ pipeline {
     environment {
         IMAGE_NAME = 'rajvi1023/employee-service'
         IMAGE_TAG  = "${BUILD_NUMBER}"
-        FULL_IMAGE = "${IMAGE_NAME}:${BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
     }
 
     stages {
+        // =========================================================
+        // 1. CHECKOUT
+        // =========================================================
+
+        // stage('Checkout') {
+        //     steps {
+        //         checkout scm
+
+        //         sh '''
+        //             echo "======================================"
+        //             echo "CHECKOUT"
+        //             echo "======================================"
+
+        //             pwd
+        //             find . -maxdepth 3 -type f | sort
+        //         '''
+        //     }
+        // }
 
         // =========================================================
-        // 1. BUILD
+        // 2. BUILD
         // =========================================================
 
         stage('Build') {
             steps {
                 dir('kubernetsDeployement') {
                     sh '''
-                        set -e
-
                         echo "======================================"
                         echo "MAVEN BUILD"
                         echo "======================================"
@@ -30,15 +46,13 @@ pipeline {
         }
 
         // =========================================================
-        // 2. DOCKER BUILD
+        // 3. DOCKER BUILD
         // =========================================================
 
         stage('Docker Build') {
             steps {
                 dir('kubernetsDeployement') {
                     sh '''
-                        set -e
-
                         echo "======================================"
                         echo "DOCKER BUILD"
                         echo "======================================"
@@ -46,20 +60,15 @@ pipeline {
                         echo "Building image: ${FULL_IMAGE}"
 
                         docker build \
-                            --progress=plain \
-                            -t "${FULL_IMAGE}" \
+                            -t ${FULL_IMAGE} \
                             .
-
-                        echo ""
-                        echo "Docker image created:"
-                        docker images "${IMAGE_NAME}"
                     '''
                 }
             }
         }
 
         // =========================================================
-        // 3. DOCKER PUSH
+        // 4. DOCKER PUSH
         // =========================================================
 
         stage('Docker Push') {
@@ -72,8 +81,6 @@ pipeline {
                     )
                 ]) {
                     sh '''
-                        set -e
-
                         echo "======================================"
                         echo "DOCKER PUSH"
                         echo "======================================"
@@ -82,27 +89,21 @@ pipeline {
                             -u "$DOCKER_USERNAME" \
                             --password-stdin
 
-                        docker push "${FULL_IMAGE}"
+                        docker push ${FULL_IMAGE}
 
                         docker logout
-
-                        echo ""
-                        echo "Image pushed successfully:"
-                        echo "${FULL_IMAGE}"
                     '''
                 }
             }
         }
 
         // =========================================================
-        // 4. VERIFY KUBERNETES
+        // 5. VERIFY KUBERNETES
         // =========================================================
 
         stage('Verify Kubernetes Connection') {
             steps {
                 sh '''
-                    set -e
-
                     echo "======================================"
                     echo "VERIFY KUBERNETES"
                     echo "======================================"
@@ -115,12 +116,6 @@ pipeline {
                     kubectl config current-context
 
                     echo ""
-                    echo "Kubernetes server:"
-                    kubectl config view --minify \
-                        -o jsonpath='{.clusters[0].cluster.server}'
-                    echo ""
-
-                    echo ""
                     echo "Cluster info:"
                     kubectl cluster-info
 
@@ -131,251 +126,143 @@ pipeline {
                     echo ""
                     echo "Namespaces:"
                     kubectl get namespaces
-
-                    echo ""
-                    echo "Kubernetes connection successful!"
                 '''
             }
         }
 
         // =========================================================
-        // 5. DEPLOY MYSQL
+        // 6. DEPLOY MYSQL
         // =========================================================
 
         stage('Deploy MySQL') {
             steps {
                 dir('kubernetsDeployement') {
                     sh '''
-                        set -e
+                echo "======================================"
+                echo "DEPLOY MYSQL"
+                echo "======================================"
 
-                        echo "======================================"
-                        echo "DEPLOY MYSQL"
-                        echo "======================================"
+                kubectl apply -f k8s/namespace.yaml
 
-                        echo "Creating namespace..."
-                        kubectl apply \
-                            -f k8s/namespace.yaml
+                kubectl apply \
+                    -f k8s/mysql/mysql-secret.yaml
 
-                        echo ""
-                        echo "Deploying MySQL Secret..."
-                        kubectl apply \
-                            -f k8s/mysql/mysql-secret.yaml
+                kubectl apply \
+                    -f k8s/mysql/mysql-deployment.yaml
 
-                        echo ""
-                        echo "Deploying MySQL..."
-                        kubectl apply \
-                            -f k8s/mysql/mysql-deployment.yaml
+                kubectl apply \
+                    -f k8s/mysql/mysql-service.yaml
 
-                        echo ""
-                        echo "Creating MySQL Service..."
-                        kubectl apply \
-                            -f k8s/mysql/mysql-service.yaml
+                echo ""
+                echo "MySQL resources:"
+                kubectl get all -n employee -l app=mysql
 
-                        echo ""
-                        echo "MySQL resources:"
-                        kubectl get all \
-                            -n employee \
-                            -l app=mysql
+                echo ""
+                echo "Waiting for MySQL..."
 
-                        echo ""
-                        echo "Waiting for MySQL..."
+                if ! kubectl rollout status \
+                    deployment/mysql \
+                    -n employee \
+                    --timeout=180s
+                then
+                    echo "======================================"
+                    echo "MYSQL DEPLOYMENT FAILED"
+                    echo "======================================"
 
-                        if ! kubectl rollout status \
-                            deployment/mysql \
-                            -n employee \
-                            --timeout=180s
-                        then
+                    echo ""
+                    echo "Pods:"
+                    kubectl get pods -n employee -l app=mysql -o wide
 
-                            echo "======================================"
-                            echo "MYSQL DEPLOYMENT FAILED"
-                            echo "======================================"
+                    echo ""
+                    echo "MySQL Logs:"
+                    kubectl logs -n employee -l app=mysql --tail=100 || true
 
-                            echo ""
-                            echo "Pods:"
-                            kubectl get pods \
-                                -n employee \
-                                -l app=mysql \
-                                -o wide
+                    echo ""
+                    echo "MySQL Describe:"
+                    kubectl describe pod -n employee -l app=mysql || true
 
-                            echo ""
-                            echo "Services:"
-                            kubectl get services \
-                                -n employee
+                    echo ""
+                    echo "Kubernetes Events:"
+                    kubectl get events \
+                        -n employee \
+                        --sort-by=.lastTimestamp \
+                        | tail -30
 
-                            echo ""
-                            echo "MySQL Logs:"
-                            kubectl logs \
-                                -n employee \
-                                -l app=mysql \
-                                --tail=100 || true
+                    exit 1
+                fi
 
-                            echo ""
-                            echo "MySQL Describe:"
-                            kubectl describe pod \
-                                -n employee \
-                                -l app=mysql || true
-
-                            echo ""
-                            echo "Kubernetes Events:"
-                            kubectl get events \
-                                -n employee \
-                                --sort-by=.lastTimestamp \
-                                | tail -30
-
-                            exit 1
-                        fi
-
-                        echo ""
-                        echo "MySQL is READY!"
-                    '''
+                echo "MySQL is READY!"
+            '''
                 }
             }
         }
 
         // =========================================================
-        // 6. DEPLOY EMPLOYEE SERVICE
+        // 7. DEPLOY EMPLOYEE SERVICE
         // =========================================================
 
         stage('Deploy Employee Service') {
             steps {
                 dir('kubernetsDeployement') {
                     sh '''
-                        set -e
-
                         echo "======================================"
                         echo "DEPLOY EMPLOYEE SERVICE"
                         echo "======================================"
 
-                        export IMAGE_TAG="${BUILD_NUMBER}"
+                        export IMAGE_TAG=${BUILD_NUMBER}
 
                         echo "Deploying image:"
                         echo "${FULL_IMAGE}"
 
-                        echo ""
-                        echo "Applying Employee ConfigMap..."
                         kubectl apply \
                             -f k8s/employee/employee-config.yaml
 
-                        echo ""
-                        echo "Applying Employee Secret..."
                         kubectl apply \
                             -f k8s/employee/employee-secret.yaml
 
-                        echo ""
-                        echo "Applying Employee DB Secret..."
-                        kubectl apply \
-                            -f k8s/employee/employee-db-secret.yaml
-
-                        echo ""
-                        echo "Applying Employee Service..."
                         kubectl apply \
                             -f k8s/employee/employee-service.yaml
 
-                        echo ""
-                        echo "Applying Employee Deployment..."
+                            kubectl apply \
+                            -f k8s/employee/employee-db-secret.yaml
 
                         envsubst < \
                             k8s/employee/employee-deployment.yaml | \
                             kubectl apply -f -
 
                         echo ""
-                        echo "Deployment:"
-                        kubectl get deployment \
-                            employee-service \
-                            -n employee
-
-                        echo ""
                         echo "Waiting for Employee Service..."
 
-                        if ! kubectl rollout status \
+                        kubectl rollout status \
                             deployment/employee-service \
                             -n employee \
                             --timeout=180s
-                        then
-
-                            echo "======================================"
-                            echo "EMPLOYEE SERVICE DEPLOYMENT FAILED"
-                            echo "======================================"
-
-                            echo ""
-                            echo "Deployments:"
-                            kubectl get deployments \
-                                -n employee
-
-                            echo ""
-                            echo "Pods:"
-                            kubectl get pods \
-                                -n employee \
-                                -o wide
-
-                            echo ""
-                            echo "Services:"
-                            kubectl get services \
-                                -n employee
-
-                            echo ""
-                            echo "Employee Service Logs:"
-                            kubectl logs \
-                                -n employee \
-                                -l app=employee-service \
-                                --tail=150 || true
-
-                            echo ""
-                            echo "Employee Deployment Describe:"
-                            kubectl describe deployment \
-                                employee-service \
-                                -n employee || true
-
-                            echo ""
-                            echo "Kubernetes Events:"
-                            kubectl get events \
-                                -n employee \
-                                --sort-by=.lastTimestamp \
-                                | tail -50
-
-                            exit 1
-                        fi
-
-                        echo ""
-                        echo "Employee Service is READY!"
                     '''
                 }
             }
         }
 
         // =========================================================
-        // 7. VERIFY DEPLOYMENT
+        // 8. VERIFY
         // =========================================================
 
-        stage('Verify Deployment') {
+        stage('Verify Kubernetes') {
             steps {
                 sh '''
-                    set -e
-
                     echo "======================================"
                     echo "KUBERNETES STATUS"
                     echo "======================================"
 
-                    echo ""
                     echo "Deployments:"
-                    kubectl get deployments \
-                        -n employee
+                    kubectl get deployments -n employee
 
                     echo ""
                     echo "Pods:"
-                    kubectl get pods \
-                        -n employee \
-                        -o wide
+                    kubectl get pods -n employee -o wide
 
                     echo ""
                     echo "Services:"
-                    kubectl get services \
-                        -n employee
-
-                    echo ""
-                    echo "Endpoints:"
-                    kubectl get endpoints \
-                        -n employee
+                    kubectl get services -n employee
 
                     echo ""
                     echo "======================================"
@@ -384,42 +271,9 @@ pipeline {
                 '''
             }
         }
-
-        // =========================================================
-        // 8. GET EMPLOYEE SERVICE URL
-        // =========================================================
-
-        stage('Get Employee Service URL') {
-            steps {
-                sh '''
-                    echo "======================================"
-                    echo "EMPLOYEE SERVICE URL"
-                    echo "======================================"
-
-                    kubectl get service \
-                        employee-service \
-                        -n employee
-
-                    echo ""
-
-                    minikube service \
-                        employee-service \
-                        -n employee \
-                        --url || true
-
-                    echo ""
-                    echo "======================================"
-                '''
-            }
-        }
     }
 
-    // =============================================================
-    // POST ACTIONS
-    // =============================================================
-
     post {
-
         success {
             echo """
             ======================================
@@ -429,7 +283,6 @@ pipeline {
             Application : Employee Service
             Image       : ${FULL_IMAGE}
             Build       : ${BUILD_NUMBER}
-            Namespace   : employee
 
             Deployment completed successfully.
 
@@ -444,9 +297,7 @@ pipeline {
             ======================================
 
             Application : Employee Service
-            Image       : ${FULL_IMAGE}
             Build       : ${BUILD_NUMBER}
-            Namespace   : employee
 
             Please check Jenkins logs.
 
@@ -459,4 +310,4 @@ pipeline {
             echo "Result: ${currentBuild.currentResult}"
         }
     }
-} 
+}
