@@ -37,36 +37,23 @@ pipeline {
         // =========================================================
 
         stage('Docker Build') {
-    steps {
-        dir('auth-service') {
-            sh '''
+            steps {
+                dir('auth-service') {
+                    sh '''
                 set -e
 
-                echo "========================================="
-                echo "Docker Build Debug"
-                echo "========================================="
+                echo "===== Dockerfile ====="
+                nl -ba Dockerfile
 
-                echo "Current directory:"
+                echo "===== Build context ====="
                 pwd
-
-                echo "Files:"
                 ls -lah
-
-                echo "Target directory:"
-                ls -lah target || true
-
-                echo "Auth JAR:"
                 ls -lh target/auth.jar
 
-                echo "Dockerfile:"
-                cat Dockerfile
+                echo "===== Docker version ====="
+                docker --version
 
-                echo "Dockerignore:"
-                if [ -f .dockerignore ]; then
-                    cat .dockerignore
-                else
-                    echo "No .dockerignore found"
-                fi
+                echo "===== Docker build ====="
 
                 echo "========================================="
                 echo "Building Docker image: ${FULL_IMAGE}"
@@ -77,9 +64,9 @@ pipeline {
                     -t "${FULL_IMAGE}" \
                     .
             '''
+                }
+            }
         }
-    }
-}
 
         // =========================================================
         // 3. DOCKER PUSH
