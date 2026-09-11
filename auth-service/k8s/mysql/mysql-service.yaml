@@ -3,7 +3,7 @@ kind: Service
 
 metadata:
   name: mysql
-  namespace: auth-service
+  namespace: banking
 
 spec:
   selector:

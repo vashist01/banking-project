@@ -3,7 +3,7 @@ kind: Service
 
 metadata:
   name: auth-service
-  namespace: auth-service
+  namespace: banking
 
 spec:
   type: NodePort

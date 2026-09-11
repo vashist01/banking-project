@@ -3,7 +3,7 @@ kind: Deployment
 
 metadata:
   name: mysql
-  namespace: auth-service
+  namespace: banking
 
 spec:
   replicas: 1

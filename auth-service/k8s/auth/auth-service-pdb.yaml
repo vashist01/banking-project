@@ -3,7 +3,7 @@ kind: PodDisruptionBudget
 
 metadata:
   name: auth-service-pdb
-  namespace: auth-service
+  namespace: banking
 
 spec:
   minAvailable: 2

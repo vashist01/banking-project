@@ -3,7 +3,7 @@ kind: ConfigMap
 
 metadata:
   name: auth-service-config
-  namespace: auth-service
+  namespace: banking
 
 data:
   DB_URL: "jdbc:mysql://mysql:3306/auth_db?useSSL=false&serverTimezone=UTC"
