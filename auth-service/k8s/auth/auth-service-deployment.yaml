@@ -10,7 +10,6 @@ spec:
 
   strategy:
     type: RollingUpdate
-
     rollingUpdate:
       maxUnavailable: 0
       maxSurge: 1
@@ -28,11 +27,8 @@ spec:
       terminationGracePeriodSeconds: 30
 
       containers:
-
         - name: auth-service
-
           image: rajvi1023/auth-service:${IMAGE_TAG}
-
           imagePullPolicy: IfNotPresent
 
           ports:
@@ -41,7 +37,6 @@ spec:
               protocol: TCP
 
           env:
-
             - name: DB_URL
               value: "jdbc:mysql://mysql:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
 
@@ -70,16 +65,14 @@ spec:
             requests:
               cpu: "250m"
               memory: "512Mi"
-
             limits:
               cpu: "1000m"
               memory: "1Gi"
 
           startupProbe:
-          httpGet:
-            path: /actuator/health
-            port: 8080
-
+            httpGet:
+              path: /actuator/health
+              port: 8080
             initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 3
@@ -89,7 +82,6 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8080
-
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
@@ -99,7 +91,6 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: 8080
-
             initialDelaySeconds: 30
             periodSeconds: 20
             timeoutSeconds: 3
