@@ -55,24 +55,7 @@ eureka:
   instance:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 10
-    lease-expiration-duration-in-seconds: 30
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
-
-  endpoint:
-    health:
-      probes:
-        enabled: true
-
-  health:
-    livenessstate:
-      enabled: true
-    readinessstate:
-      enabled: true
+    lease-expiration-duration-in-seconds: 30 
 
   metrics:
     tags:
