@@ -4,9 +4,12 @@ import com.customer.entity.Customer;
 import com.customer.enums.CustomerStatus;
 import com.customer.enums.KYCStatus;
 import feign.Param;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,11 +19,30 @@ import java.util.Optional;
 public interface CustomerRepository extends JpaRepository<Customer,Long> {
     boolean existsByEmail(String email);
 
+    @EntityGraph(attributePaths = {
+      "addresss"
+    })
+    @Transactional(readOnly = true)
+    Optional<Customer> findById(Long id);
+
     List<Customer> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String searchTerm, String searchTerm1);
 
+    @EntityGraph(attributePaths = {
+      "addresss"
+    })
+    @Transactional(readOnly = true)
     Optional<Customer> findByCustomerId(String customerNumber);
 
+     @EntityGraph(attributePaths = {
+      "addresss"
+    })
+    @Transactional(readOnly = true)
     List<Customer> findByStatus(CustomerStatus status);
+    
+     @EntityGraph(attributePaths = {
+      "addresss"
+    })
+    @Transactional(readOnly = true)
 
     List<Customer> findByKycStatus(KYCStatus status);
 

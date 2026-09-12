@@ -19,32 +19,5 @@ public class RateLimiterConfig {
             String userRateLimiting = userId+userClientId; // this approach is token bucket algorithem
             return Mono.just(userRateLimiting != null ? userRateLimiting : ip);
         };
-    }
-
-//    // Optional: Add additional key resolvers for different scenarios
-//    @Bean
-//    public KeyResolver userKeyResolver() {
-//        return exchange -> {
-//            // Use user ID from header or authentication
-//            String userId = exchange.getRequest().getHeaders()
-//                .getFirst("X-User-Id");
-//            if (userId == null) {
-//                userId = "anonymous";
-//            }
-//            return Mono.just(userId);
-//        };
-//    }
-//
-//    @Bean
-//    public KeyResolver apiKeyResolver() {
-//        return exchange -> {
-//            // Use API key from header
-//            String apiKey = exchange.getRequest().getHeaders()
-//                .getFirst("X-API-Key");
-//            if (apiKey == null) {
-//                apiKey = "default";
-//            }
-//            return Mono.just(apiKey);
-//        };
-//    }
+    } 
 }

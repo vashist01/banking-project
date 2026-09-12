@@ -3,3 +3,27 @@ profiles:
 
 config:
   import: configserver:http://localhost:8888
+
+  resilience4j:
+  circuitbreaker:
+    instances:
+      account-service:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 20
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 10
+        waitDurationInOpenState: 10s
+
+  retry:
+    instances:
+      account-service:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+
+  bulkhead:
+    instances:
+      account-service:
+        maxConcurrentCalls: 20
+        maxWaitDuration: 500ms

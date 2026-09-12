@@ -5,5 +5,5 @@ spring:
   profiles:
     active: local
 
-  config:
-    import: configserver:http://localhost:8888
+  # config:
+  #   import: configserver:http://localhost:8888

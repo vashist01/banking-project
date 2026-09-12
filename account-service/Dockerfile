@@ -13,6 +13,6 @@ WORKDIR /account-service
 
 COPY --from=build app/target/*.jar account.jar
 
-EXPOSE 8081
+EXPOSE 8001
 
 ENTRYPOINT ["java","-jar","account-jar"]

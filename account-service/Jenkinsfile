@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'rajvi1023/acccount-service'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        } 
+        stage('Build') {
+            steps {
+                dir('account-service') {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('account-service') {
+                    sh 'mvn test'
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                dir('account-service') {
+                    sh """
+                        docker build \
+                        -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    """
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([
+            usernamePassword(
+                credentialsId: 'dockerhub',
+                usernameVariable: 'DOCKER_USERNAME',
+                passwordVariable: 'DOCKER_PASSWORD'
+            )
+        ]) {
+                    sh """
+                echo \$DOCKER_PASSWORD | docker login \
+                    -u \$DOCKER_USERNAME \
+                    --password-stdin
+
+                docker push ${IMAGE_NAME}:${IMAGE_TAG}
+            """
+        }
+            }
+        }
+        stage('Deploy Kubernetes') {
+            steps {
+                dir('account-service') {
+                    sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+
+                kubectl set image deployment/account-service \
+                    account-service=$IMAGE_NAME:$IMAGE_TAG
+
+                kubectl rollout status deployment/account-service
+            '''
+                }
+            }
+        }
+    }
+}

@@ -10,6 +10,14 @@ public class ExecutorConfig {
 
   @Bean
   public ExecutorService dashboardExecutor() {
-    return Executors.newVirtualThreadPerTaskExecutor();
+    ThreadPoolExecutor executor =
+        new ThreadPoolExecutor(
+                10,                       // corePoolSize
+                20,                       // maximumPoolSize
+                60,                       // keepAliveTime
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(100),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
   }
 }

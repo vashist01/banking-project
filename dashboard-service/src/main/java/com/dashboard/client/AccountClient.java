@@ -2,6 +2,7 @@ package com.dashboard.client;
 
 import com.dashboard.config.FeignSslConfig;
 import com.dashboard.dto.AccountResponse;
+
 import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
     configuration = FeignSslConfig.class
 )
 public interface AccountClient {
-
-  @GetMapping("/all-account")
+  
+  @GetMapping("/all-account") 
   List<AccountResponse> getAccountDashboardDetail();
 }

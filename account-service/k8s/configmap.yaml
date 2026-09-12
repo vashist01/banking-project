@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: configMap
+metadata: 
+    name: banking-config
+    namespace: banking
+
+data: 
+   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+
+   REDIS_HOST: "redis"
+   REDIS_PORT: "6979"
+
+   EUREKA_URL: "http://eureka-server:8761/eureka/"
+   ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+
+   TRACING_SAMPLING_PROBABILITY: "1.0"
+   SPRING_PROFILES_ACTIVE: "kubernetes"
