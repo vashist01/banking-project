@@ -23,17 +23,11 @@ WORKDIR /customer-service
 COPY --from=build /app/target/*.jar /customer-service/customer.jar
 
 
-# OpenTelemetry Java Agent
-COPY opentelemetry-javaagent.jar \
-     /customer-service/opentelemetry-javaagent.jar
-
-
-# Customer Service runs on 8082
+# Customer Service runs on port 8082
 EXPOSE 8082
 
 
 # Start Customer Service
 ENTRYPOINT ["java", \
-    "-javaagent:/customer-service/opentelemetry-javaagent.jar", \
     "-jar", \
     "/customer-service/customer.jar"]
