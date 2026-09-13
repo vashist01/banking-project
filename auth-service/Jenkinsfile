@@ -110,7 +110,7 @@ pipeline {
                         set -e
 
                         kubectl apply \
-                            -f k8s/auth/namespace.yaml --validate=false
+                            -f k8s/auth/namespace.yaml
 
                         kubectl get namespace banking
                     '''
