@@ -1,6 +1,7 @@
 # ============================================================
 # 1. API VERSION
 # ============================================================
+
 # Deployment Kubernetes ke apps/v1 API ke through create hoga.
 apiVersion: apps/v1
 
@@ -8,6 +9,7 @@ apiVersion: apps/v1
 # ============================================================
 # 2. RESOURCE TYPE
 # ============================================================
+
 # Hum yahan Kubernetes Deployment create kar rahe hain.
 #
 # Deployment ka kaam:
@@ -21,6 +23,7 @@ kind: Deployment
 # ============================================================
 # 3. METADATA
 # ============================================================
+
 metadata:
 
   # Deployment ka naam
@@ -34,24 +37,15 @@ metadata:
 # ============================================================
 # 4. SPEC
 # ============================================================
+
 # spec mein hum batate hain ki Deployment ka desired state kya hai.
 spec:
 
   # ----------------------------------------------------------
   # REPLICAS
   # ----------------------------------------------------------
+
   # Customer Service ke 2 Pods normally running rahenge.
-  #
-  # Example:
-  #
-  # customer-service-pod-1  --> Running
-  # customer-service-pod-2  --> Running
-  #
-  # Agar ek Pod crash ho gaya:
-  #
-  # pod-1 --> Failed
-  # pod-2 --> Running
-  # pod-3 --> Kubernetes automatically create karega
   #
   # Production mein 2+ replicas availability improve karte hain.
   replicas: 2
@@ -60,48 +54,29 @@ spec:
   # ----------------------------------------------------------
   # DEPLOYMENT STRATEGY
   # ----------------------------------------------------------
+
   strategy:
 
-    # RollingUpdate ka matlab:
-    #
     # New version ko gradually deploy karo.
-    #
-    # Saare old Pods ko ek saath delete nahi kiya jayega.
     type: RollingUpdate
 
     rollingUpdate:
 
-      # maxUnavailable: 0
-      #
       # Update ke time existing available Pods mein se
       # 0 Pods unavailable hone chahiye.
       #
-      # Iska goal downtime ko minimize karna hai.
+      # Isse downtime minimize hota hai.
       maxUnavailable: 0
 
-      # maxSurge: 1
-      #
       # Update ke time desired replicas ke upar
       # maximum 1 extra Pod create kiya ja sakta hai.
-      #
-      # Example:
-      #
-      # Current:
-      # customer-v1
-      # customer-v1
-      #
-      # New deployment:
-      # customer-v1
-      # customer-v1
-      # customer-v2   <-- extra Pod
-      #
-      # customer-v2 ready hone ke baad old Pod remove hoga.
       maxSurge: 1
 
 
   # ==========================================================
   # 5. SELECTOR
   # ==========================================================
+
   # Deployment ko batana hai ki kaunse Pods is Deployment ke hain.
   selector:
 
@@ -115,8 +90,7 @@ spec:
   # ==========================================================
   # 6. POD TEMPLATE
   # ==========================================================
-  # template batata hai ki Deployment jo Pods create karega
-  # unke andar kya configuration hogi.
+
   template:
 
     metadata:
@@ -131,12 +105,34 @@ spec:
     # ========================================================
     # 7. POD SPECIFICATION
     # ========================================================
+
     spec:
 
-      # ------------------------------------------------------
+      # ========================================================
+      # POD SECURITY CONTEXT
+      # ========================================================
+      #
+      # Pod root user ke roop mein run nahi hoga.
+      #
+      # UID/GID 1001 Dockerfile ke non-root user se match
+      # hona chahiye.
+      #
+      # Dockerfile mein:
+      #
+      # RUN useradd --system --uid 1001 customeruser
+      # USER customeruser
+      #
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+
+
+      # ========================================================
       # CONTAINERS
-      # ------------------------------------------------------
-      # Pod ke andar containers define karte hain.
+      # ========================================================
+
       containers:
 
         - name: customer-service
@@ -144,61 +140,57 @@ spec:
           # --------------------------------------------------
           # DOCKER IMAGE
           # --------------------------------------------------
-          # Docker Hub se Customer Service ki image use hogi.
+
+          # Jenkins ${FULL_IMAGE} ko actual image tag se replace karega.
           #
           # Example:
-          # rajvi1023/customer-service:1.0.0
-          #
-          # "1.0.0" image ka tag/version hai.
+          # rajvi1023/customer-service:25
           image: ${FULL_IMAGE}
 
+          # Har deployment par registry se latest specified
+          # image tag pull karne ki koshish karega.
+          imagePullPolicy: Always
+
 
           # --------------------------------------------------
-          # IMAGE PULL POLICY
+          # CONTAINER SECURITY
           # --------------------------------------------------
-          # Kubernetes decide karega ki image kab Docker registry
-          # se pull karni hai.
-          #
-          # IfNotPresent:
-          # Agar image Node par already available hai,
-          # to Kubernetes registry se dobara pull nahi karega.
-          imagePullPolicy: Always
+
+          # Container ko root ke roop mein run nahi karna.
+          securityContext:
+
+            # Root user ko prevent karta hai.
+            runAsNonRoot: true
+
+            # Dockerfile ke customeruser ka UID.
+            runAsUser: 1001
+
+            # Container ko additional privileges gain karne
+            # se prevent karta hai.
+            allowPrivilegeEscalation: false
 
 
           # --------------------------------------------------
           # CONTAINER PORT
           # --------------------------------------------------
+
           ports:
 
             - name: http
 
               # Customer Spring Boot application
               # container ke andar port 8082 par chalegi.
-              #
-              # IMPORTANT:
-              # Humne "name: http" diya hai.
-              #
-              # Isliye neeche readinessProbe mein:
-              #
-              # port: http
-              #
-              # use kar sakte hain.
               containerPort: 8082
 
 
           # ==================================================
           # 8. CONFIGMAP
           # ==================================================
+
           # ConfigMap se non-sensitive configuration
-          # container ke environment variables mein aayegi.
+          # environment variables ke roop mein aayegi.
           #
-          # Example:
-          # SPRING_PROFILES_ACTIVE
-          # DB_HOST
-          # DB_PORT
-          # etc.
-          #
-          # ConfigMap mein password nahi rakhna chahiye.
+          # Password yahan nahi rakhna chahiye.
           envFrom:
 
             - configMapRef:
@@ -209,57 +201,52 @@ spec:
 
 
           # ==================================================
-          # 9. ENVIRONMENT VARIABLES
+          # 9. DATABASE ENVIRONMENT VARIABLES
           # ==================================================
-          # Yahan sensitive DB credentials aur DB URL
-          # application ko provide kar rahe hain.
-          env:
 
+          env:
 
             # ------------------------------------------------
             # DATABASE USERNAME
             # ------------------------------------------------
+
             - name: SPRING_DATASOURCE_USERNAME
 
               valueFrom:
 
-                # Username Kubernetes Secret se liya jayega.
                 secretKeyRef:
 
-                  # Secret ka naam
-                  name: customer-db-secret
+                  # PostgreSQL ka shared Secret.
+                  name: postgres-secret
 
-                  # Secret ke andar ye key honi chahiye:
-                  #
-                  # POSTGRES_USER
+                  # Secret ke andar username ki key.
                   key: POSTGRES_USER
 
 
             # ------------------------------------------------
             # DATABASE PASSWORD
             # ------------------------------------------------
+
             - name: SPRING_DATASOURCE_PASSWORD
 
               valueFrom:
 
                 secretKeyRef:
 
-                  # Password bhi same Kubernetes Secret se.
-                  name: customer-db-secret
+                  # PostgreSQL ka shared Secret.
+                  name: postgres-secret
 
-                  # Secret ke andar:
-                  #
-                  # POSTGRES_PASSWORD
+                  # Secret ke andar password ki key.
                   key: POSTGRES_PASSWORD
 
 
             # ------------------------------------------------
             # DATABASE URL
             # ------------------------------------------------
+
             - name: SPRING_DATASOURCE_URL
 
               # PostgreSQL Kubernetes Service ka naam:
-              #
               # postgres
               #
               # Port:
@@ -268,20 +255,21 @@ spec:
               # Database:
               # customer_db
               #
-              # Isliye:
-              #
-              # jdbc:postgresql://postgres:5432/customer_db
+              # Kubernetes cluster ke andar:
+              # postgres -> PostgreSQL Service
               value: jdbc:postgresql://postgres:5432/customer_db
 
 
           # ==================================================
           # 10. RESOURCE REQUESTS AND LIMITS
           # ==================================================
+
           resources:
 
             # ------------------------------------------------
             # REQUESTS
             # ------------------------------------------------
+
             # Kubernetes ko batata hai ki Pod ko minimum
             # kitne resources chahiye.
             requests:
@@ -289,15 +277,16 @@ spec:
               # 250m = 0.25 CPU core
               cpu: "250m"
 
-              # Minimum requested memory = 512 MB
+              # Minimum requested memory = 512 MiB
               memory: "512Mi"
 
 
             # ------------------------------------------------
             # LIMITS
             # ------------------------------------------------
-            # Container maximum itne resources consume kar
-            # sakta hai.
+
+            # Container maximum itne resources consume
+            # kar sakta hai.
             limits:
 
               # Maximum 1 CPU core
@@ -310,37 +299,22 @@ spec:
           # ==================================================
           # 11. READINESS PROBE
           # ==================================================
-          # Readiness ka simple meaning:
+
+          # Readiness ka meaning:
           #
-          # "Kya Customer Service abhi traffic receive
-          # karne ke liye ready hai?"
+          # "Kya Customer Service traffic receive karne
+          # ke liye ready hai?"
           #
-          # Agar application start ho rahi hai:
-          #
-          # Pod Running
-          #      |
-          #      v
-          # Application not ready
-          #      |
-          #      v
-          # Service traffic nahi bhejega
-          #
-          # Application ready hone ke baad:
-          #
-          # Pod Ready
-          #      |
-          #      v
-          # Service traffic bhejega.
+          # Agar application ready nahi hai:
+          # Service traffic nahi bhejega.
           readinessProbe:
 
             httpGet:
 
-              # Spring Boot Actuator ka readiness endpoint.
+              # Spring Boot Actuator readiness endpoint.
               path: /actuator/health/readiness
 
-              # IMPORTANT:
-              # Humne container port ko name "http" diya hai,
-              # isliye yahan "http" use kar sakte hain.
+              # Named container port.
               port: http
 
 
@@ -362,12 +336,13 @@ spec:
           # ==================================================
           # 12. LIVENESS PROBE
           # ==================================================
+
           # Liveness ka meaning:
           #
           # "Kya application properly alive hai?"
           #
           # Agar application hang/crash ho jaye,
-          # Kubernetes container ko restart kar sakta hai.
+          # Kubernetes container restart kar sakta hai.
           livenessProbe:
 
             httpGet:
@@ -380,7 +355,6 @@ spec:
 
 
             # Application ko initially 60 seconds ka time do.
-            # Uske baad liveness check start hoga.
             initialDelaySeconds: 60
 
             # Har 20 seconds mein check.
@@ -393,37 +367,13 @@ spec:
             failureThreshold: 3
 
 
-          # ==================================================
-          # 13. SECURITY CONTEXT
-          # ==================================================
-          # Container ko unnecessarily high privileges se
-          # bachane ke liye security settings.
-          securityContext:
-
-            # Container ko additional Linux privileges
-            # lene se rokta hai.
-            allowPrivilegeEscalation: false
-
-            # Container root user ke roop mein run nahi hona chahiye.
-            #
-            # SECURITY BEST PRACTICE
-            runAsNonRoot: true
-
-
       # ======================================================
-      # 14. TERMINATION GRACE PERIOD
+      # 13. TERMINATION GRACE PERIOD
       # ======================================================
+
       # Jab Kubernetes Pod ko stop karega,
       # application ko gracefully shutdown hone ke liye
       # 30 seconds milenge.
       #
-      # Example:
-      #
-      # Kubernetes:
-      # "Pod ko terminate karo"
-      #
-      # Application:
-      # "Existing request complete karta hoon..."
-      #
-      # 30 seconds tak graceful shutdown ka chance.
+      # Existing requests complete karne ka chance milega.
       terminationGracePeriodSeconds: 30
