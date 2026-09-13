@@ -99,7 +99,7 @@ pipeline {
                     '''
                 }
             }
-        } 
+        }
         // =========================================================
         // 5. DEPLOY BANKING NAMESPACE
         // =========================================================
@@ -287,6 +287,25 @@ pipeline {
                         echo "Auth Service is READY!"
                     '''
                 }
+            }
+        }
+    // =========================================================
+        // 9. DEPLOY REDIS
+        // =========================================================
+
+        stage('Deploy Redis') {
+            steps {
+                sh '''
+            echo "======================================"
+            echo "Deploying Redis"
+            echo "======================================"
+
+            kubectl apply -f k8s/redis/redis-deployment.yaml
+            kubectl apply -f k8s/redis/redis-service.yaml
+
+            kubectl get pods -n banking
+            kubectl get svc -n banking
+        '''
             }
         }
 
