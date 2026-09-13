@@ -175,6 +175,59 @@ pipeline {
                 }
             }
         }
+        // =========================================================
+        // 9. DEPLOY REDIS
+        // =========================================================
+
+        stage('Deploy Redis') {
+            steps {
+                dir('auth-service') {
+                    sh '''
+                set -e
+
+                echo "======================================"
+                echo "DEPLOY REDIS"
+                echo "======================================"
+
+                kubectl apply \
+                    -f k8s/redis/redis-deployment.yaml
+
+                kubectl apply \
+                    -f k8s/redis/redis-service.yaml
+
+                echo ""
+                echo "Redis deployment:"
+                kubectl get deployment redis -n banking
+
+                echo ""
+                echo "Redis pod:"
+                kubectl get pods \
+                    -n banking \
+                    -l app=redis \
+                    -o wide
+
+                echo ""
+                echo "Redis service:"
+                kubectl get svc redis -n banking
+
+                echo ""
+                echo "Waiting for Redis..."
+
+                kubectl rollout status \
+                    deployment/redis \
+                    -n banking \
+                    --timeout=120s
+
+                echo ""
+                echo "Redis endpoints:"
+                kubectl get endpoints redis -n banking
+
+                echo ""
+                echo "Redis is READY!"
+            '''
+                }
+            }
+        }
 
         // =========================================================
         // 7. DEPLOY AUTH CONFIGURATION
@@ -289,26 +342,7 @@ pipeline {
                 }
             }
         }
-    // =========================================================
-        // 9. DEPLOY REDIS
-        // =========================================================
-
-        stage('Deploy Redis') {
-            steps {
-                sh '''
-            echo "======================================"
-            echo "Deploying Redis"
-            echo "======================================"
-
-            kubectl apply -f k8s/redis/redis-deployment.yaml
-            kubectl apply -f k8s/redis/redis-service.yaml
-
-            kubectl get pods -n banking
-            kubectl get svc -n banking
-        '''
-            }
-        }
-
+    
         // =========================================================
         // 9. DEPLOY HPA
         // =========================================================
