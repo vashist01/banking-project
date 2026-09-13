@@ -150,7 +150,7 @@ spec:
           # rajvi1023/customer-service:1.0.0
           #
           # "1.0.0" image ka tag/version hai.
-          image: rajvi1023/customer-service:${IMAGE_TAG}
+          image: ${FULL_IMAGE}
 
 
           # --------------------------------------------------
