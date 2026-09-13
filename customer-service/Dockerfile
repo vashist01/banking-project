@@ -1,33 +1,20 @@
-# ============================================================
-# STAGE 1: BUILD
-# ============================================================
+# ==========================================
+# CUSTOMER SERVICE - JAVA 21
+# ==========================================
 
-FROM maven:3.9.6-eclipse-temurin-21 AS build
-
-WORKDIR /app
-
-COPY pom.xml .
-COPY src ./src
-
-RUN mvn clean package -DskipTests
-
-
-# ============================================================
-# STAGE 2: RUNTIME
-# ============================================================
-
+# Java 21 runtime image
+# Maven build is already performed by Jenkins
 FROM eclipse-temurin:21-jre
 
+# Application directory inside container
 WORKDIR /customer-service
 
-COPY --from=build /app/target/*.jar /customer-service/customer.jar
+# Copy JAR created by Jenkins Maven Build
+# Jenkins creates this inside customer-service/target/
+COPY target/*.jar customer.jar
 
-
-# Customer Service runs on port 8082
+# Spring Boot Customer Service port
 EXPOSE 8082
 
-
-# Start Customer Service
-ENTRYPOINT ["java", \
-    "-jar", \
-    "/customer-service/customer.jar"]
+# Start the application
+ENTRYPOINT ["java", "-jar", "/customer-service/customer.jar"]
