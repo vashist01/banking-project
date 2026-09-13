@@ -36,8 +36,7 @@ public class SecurityConfig {
                                                 // Actuator FIRST
                                                 .requestMatchers("/actuator/**").permitAll()
 
-                                                .requestMatchers("/api/v1/auth/**").permitAll()
-
+                                                .requestMatchers("/api/v1/auth/**").permitAll() 
                                                 .requestMatchers(
                                                                 "/v3/api-docs/**",
                                                                 "/swagger-ui/**",
@@ -65,4 +64,6 @@ public class SecurityConfig {
                         AuthenticationConfiguration configuration) throws Exception {
                 return configuration.getAuthenticationManager();
         }
+
+        
 }
