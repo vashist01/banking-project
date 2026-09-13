@@ -8,7 +8,7 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /customer-service
 
-COPY target/auth.jar customer.jar
+COPY target/customer.jar customer.jar
 
 EXPOSE 8082
 
