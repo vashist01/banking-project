@@ -162,7 +162,7 @@ spec:
           # IfNotPresent:
           # Agar image Node par already available hai,
           # to Kubernetes registry se dobara pull nahi karega.
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
 
 
           # --------------------------------------------------
