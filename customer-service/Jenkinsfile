@@ -1,0 +1,688 @@
+pipeline {
+
+    agent any
+
+
+    // =========================================================
+    // GLOBAL ENVIRONMENT VARIABLES
+    // =========================================================
+
+    environment {
+
+        // Docker Hub image name
+        IMAGE_NAME = 'rajvi1023/customer-service'
+
+        // Jenkins build number ko Docker image tag ke roop mein use karenge.
+        //
+        // Example:
+        // Build 25
+        // ->
+        // rajvi1023/customer-service:25
+        IMAGE_TAG = "${BUILD_NUMBER}"
+
+        // Complete Docker image name
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
+
+        // Jenkins user ka kubeconfig
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    }
+
+
+    stages {
+
+
+        // =====================================================
+        // 1. MAVEN BUILD
+        // =====================================================
+
+        stage('Maven Build') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "CUSTOMER SERVICE - MAVEN BUILD"
+                        echo "======================================"
+
+                        echo ""
+                        echo "Java version:"
+                        java -version
+
+                        echo ""
+                        echo "Maven version:"
+                        mvn -version
+
+                        echo ""
+                        echo "Building Customer Service..."
+
+                        # Maven application build
+                        #
+                        # JAR target/ directory mein create hoga.
+                        mvn clean package -DskipTests
+
+                        echo ""
+                        echo "Generated JAR:"
+                        ls -lh target/*.jar
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 2. DOCKER BUILD
+        // =====================================================
+
+        stage('Docker Build') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "CUSTOMER SERVICE - DOCKER BUILD"
+                        echo "======================================"
+
+                        echo ""
+                        echo "Docker version:"
+                        docker --version
+
+                        echo ""
+                        echo "Dockerfile:"
+                        nl -ba Dockerfile
+
+                        echo ""
+                        echo "Build context:"
+                        pwd
+                        ls -lah
+
+                        echo ""
+                        echo "Generated JAR:"
+                        ls -lh target/*.jar
+
+                        echo ""
+                        echo "Building Docker image:"
+                        echo "${FULL_IMAGE}"
+
+                        docker build \
+                            --progress=plain \
+                            -t "${FULL_IMAGE}" \
+                            .
+
+                        echo ""
+                        echo "Docker image created successfully:"
+                        docker images "${IMAGE_NAME}"
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 3. DOCKER PUSH
+        // =====================================================
+
+        stage('Docker Push') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "CUSTOMER SERVICE - DOCKER PUSH"
+                        echo "======================================"
+
+                        echo ""
+                        echo "Logging into Docker Hub..."
+
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        echo ""
+                        echo "Pushing image:"
+                        echo "${FULL_IMAGE}"
+
+                        docker push "${FULL_IMAGE}"
+
+                        echo ""
+                        echo "Docker image pushed successfully."
+
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 4. DEPLOY BANKING NAMESPACE
+        // =====================================================
+
+        stage('Deploy Banking Namespace') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY BANKING NAMESPACE"
+                        echo "======================================"
+
+                        kubectl apply \
+                            -f k8s/namespace.yaml
+
+                        echo ""
+                        echo "Namespace:"
+                        kubectl get namespace banking
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 5. DEPLOY POSTGRESQL
+        // =====================================================
+
+        stage('Deploy PostgreSQL') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY CUSTOMER POSTGRESQL"
+                        echo "======================================"
+
+                        echo ""
+                        echo "Creating PostgreSQL Secret..."
+
+                        kubectl apply \
+                            -f k8s/customer/customer-db-secret.yaml
+
+                        echo ""
+                        echo "Creating PostgreSQL PVC..."
+
+                        kubectl apply \
+                            -f k8s/postgres/postgres-pvc.yaml
+
+                        echo ""
+                        echo "Creating PostgreSQL Deployment..."
+
+                        kubectl apply \
+                            -f k8s/postgres/postgres-deployment.yaml
+
+                        echo ""
+                        echo "Creating PostgreSQL Service..."
+
+                        kubectl apply \
+                            -f k8s/postgres/postgres-service.yaml
+
+                        echo ""
+                        echo "PostgreSQL Deployment:"
+                        kubectl get deployment postgres -n banking
+
+                        echo ""
+                        echo "PostgreSQL Pod:"
+                        kubectl get pods \
+                            -n banking \
+                            -l app=postgres \
+                            -o wide
+
+                        echo ""
+                        echo "PostgreSQL Service:"
+                        kubectl get svc postgres -n banking
+
+                        echo ""
+                        echo "Waiting for PostgreSQL..."
+
+                        kubectl rollout status \
+                            deployment/postgres \
+                            -n banking \
+                            --timeout=180s
+
+                        echo ""
+                        echo "PostgreSQL is READY!"
+
+                        echo ""
+                        echo "PostgreSQL Endpoints:"
+                        kubectl get endpoints postgres -n banking
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 6. DEPLOY CUSTOMER CONFIGURATION
+        // =====================================================
+
+        stage('Deploy Customer Configuration') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY CUSTOMER CONFIGURATION"
+                        echo "======================================"
+
+                        echo ""
+                        echo "Applying ConfigMap..."
+
+                        kubectl apply \
+                            -f k8s/customer/customer-configmap.yaml
+
+                        echo ""
+                        echo "Applying Database Secret..."
+
+                        kubectl apply \
+                            -f k8s/customer/customer-db-secret.yaml
+
+                        echo ""
+                        echo "ConfigMap:"
+                        kubectl get configmap \
+                            customer-config \
+                            -n banking
+
+                        echo ""
+                        echo "Secret:"
+                        kubectl get secret \
+                            customer-db-secret \
+                            -n banking
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 7. DEPLOY CUSTOMER SERVICE
+        // =====================================================
+
+        stage('Deploy Customer Service') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY CUSTOMER SERVICE"
+                        echo "======================================"
+
+                        echo ""
+                        echo "Image:"
+                        echo "${FULL_IMAGE}"
+
+                        # -------------------------------------------------
+                        # Deployment YAML mein:
+                        #
+                        # image: ${FULL_IMAGE}
+                        #
+                        # hoga.
+                        #
+                        # envsubst Jenkins environment variable ko
+                        # actual Docker image se replace karega.
+                        # -------------------------------------------------
+
+                        export IMAGE_TAG="${BUILD_NUMBER}"
+
+                        envsubst < \
+                            k8s/customer/customer-deployment.yaml | \
+                            kubectl apply -f -
+
+                        echo ""
+                        echo "Applying Customer Service..."
+
+                        kubectl apply \
+                            -f k8s/customer/customer-service.yaml
+
+                        echo ""
+                        echo "Customer Deployment:"
+                        kubectl get deployment \
+                            customer-service \
+                            -n banking
+
+                        echo ""
+                        echo "Customer Pods:"
+                        kubectl get pods \
+                            -n banking \
+                            -l app=customer-service \
+                            -o wide
+
+                        echo ""
+                        echo "Customer Service:"
+                        kubectl get svc \
+                            customer-service \
+                            -n banking
+
+                        echo ""
+                        echo "Waiting for Customer Service..."
+
+                        if ! kubectl rollout status \
+                            deployment/customer-service \
+                            -n banking \
+                            --timeout=180s
+                        then
+
+                            echo "======================================"
+                            echo "CUSTOMER SERVICE FAILED"
+                            echo "======================================"
+
+                            echo ""
+                            echo "Pods:"
+                            kubectl get pods \
+                                -n banking \
+                                -l app=customer-service \
+                                -o wide
+
+                            echo ""
+                            echo "Services:"
+                            kubectl get svc -n banking
+
+                            echo ""
+                            echo "Endpoints:"
+                            kubectl get endpoints -n banking
+
+                            echo ""
+                            echo "Customer Service Logs:"
+                            kubectl logs \
+                                -n banking \
+                                -l app=customer-service \
+                                --tail=200 || true
+
+                            echo ""
+                            echo "Customer Service Events:"
+                            kubectl get events \
+                                -n banking \
+                                --sort-by=.lastTimestamp \
+                                | tail -50
+
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "Customer Service is READY!"
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 8. DEPLOY CUSTOMER HPA
+        // =====================================================
+
+        stage('Deploy Customer HPA') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY CUSTOMER HPA"
+                        echo "======================================"
+
+                        kubectl apply \
+                            -f k8s/customer/customer-hpa.yaml
+
+                        echo ""
+                        echo "HPA:"
+                        kubectl get hpa \
+                            customer-service-hpa \
+                            -n banking
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 9. DEPLOY CUSTOMER PDB
+        // =====================================================
+
+        stage('Deploy Customer PDB') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY CUSTOMER PDB"
+                        echo "======================================"
+
+                        kubectl apply \
+                            -f k8s/customer/customer-pdb.yaml
+
+                        echo ""
+                        echo "PDB:"
+                        kubectl get pdb \
+                            customer-service-pdb \
+                            -n banking
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 10. DEPLOY CUSTOMER INGRESS
+        // =====================================================
+
+        stage('Deploy Customer Ingress') {
+
+            steps {
+
+                dir('customer-service') {
+
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY CUSTOMER INGRESS"
+                        echo "======================================"
+
+                        kubectl apply \
+                            -f k8s/customer/customer-ingress.yaml
+
+                        echo ""
+                        echo "Ingress:"
+                        kubectl get ingress \
+                            customer-ingress \
+                            -n banking
+                    '''
+                }
+            }
+        }
+
+
+        // =====================================================
+        // 11. FINAL KUBERNETES VERIFICATION
+        // =====================================================
+
+        stage('Verify Kubernetes') {
+
+            steps {
+
+                sh '''
+                    set -e
+
+                    echo "======================================"
+                    echo "CUSTOMER SERVICE - KUBERNETES STATUS"
+                    echo "======================================"
+
+                    echo ""
+                    echo "Namespaces:"
+                    kubectl get namespace banking
+
+                    echo ""
+                    echo "Deployments:"
+                    kubectl get deployments \
+                        -n banking
+
+                    echo ""
+                    echo "Pods:"
+                    kubectl get pods \
+                        -n banking \
+                        -o wide
+
+                    echo ""
+                    echo "Services:"
+                    kubectl get services \
+                        -n banking
+
+                    echo ""
+                    echo "Endpoints:"
+                    kubectl get endpoints \
+                        -n banking
+
+                    echo ""
+                    echo "HPA:"
+                    kubectl get hpa \
+                        -n banking
+
+                    echo ""
+                    echo "PDB:"
+                    kubectl get pdb \
+                        -n banking
+
+                    echo ""
+                    echo "Ingress:"
+                    kubectl get ingress \
+                        -n banking
+
+                    echo ""
+                    echo "======================================"
+                    echo "CUSTOMER SERVICE DEPLOYMENT COMPLETE"
+                    echo "======================================"
+                '''
+            }
+        }
+
+
+        // =====================================================
+        // 12. GET CUSTOMER SERVICE URL
+        // =====================================================
+
+        stage('Get Customer Service URL') {
+
+            steps {
+
+                sh '''
+                    echo "======================================"
+                    echo "CUSTOMER SERVICE URL"
+                    echo "======================================"
+
+                    echo ""
+                    echo "Kubernetes Service:"
+                    kubectl get svc \
+                        customer-service \
+                        -n banking
+
+                    echo ""
+                    echo "Minikube URL:"
+
+                    minikube service \
+                        customer-service \
+                        -n banking \
+                        --url || true
+
+                    echo ""
+                    echo "Ingress:"
+                    kubectl get ingress \
+                        customer-ingress \
+                        -n banking \
+                        || true
+                '''
+            }
+        }
+    }
+
+
+    // =========================================================
+    // POST ACTIONS
+    // =========================================================
+
+    post {
+
+        success {
+
+            echo """
+            ======================================
+            CUSTOMER SERVICE CI/CD SUCCESS
+            ======================================
+
+            Application : Customer Service
+            Image       : ${FULL_IMAGE}
+            Build       : ${BUILD_NUMBER}
+            Namespace   : banking
+            Port        : 8082
+
+            Database    : PostgreSQL
+            Redis       : Not Used
+            MySQL       : Not Used
+
+            ======================================
+            """
+        }
+
+
+        failure {
+
+            echo """
+            ======================================
+            CUSTOMER SERVICE CI/CD FAILED
+            ======================================
+
+            Application : Customer Service
+            Image       : ${FULL_IMAGE}
+            Build       : ${BUILD_NUMBER}
+            Namespace   : banking
+
+            ======================================
+            """
+        }
+
+
+        always {
+
+            echo "Jenkins Build : ${BUILD_NUMBER}"
+            echo "Result        : ${currentBuild.currentResult}"
+        }
+    }
+}
