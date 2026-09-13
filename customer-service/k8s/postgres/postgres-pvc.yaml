@@ -1,0 +1,29 @@
+# Ye bahut important file hai.
+
+# Kyun?
+
+# PostgreSQL ka data container ke andar directly nahi rakhna chahiye.
+
+# Agar PostgreSQL pod delete ho gaya:
+
+# Postgres Pod
+#      |
+#      └── container filesystem
+#               |
+#               └── DATA ❌
+
+# Pod recreate hone par data lose ho sakta hai..
+
+apiVersion: v1
+kind: PersistentVolumeClaim #Kubernetes se storage maang rahe hain
+metadata:
+    name: postgres-pvc
+    namespace: banking
+
+spec:
+  accessModes:
+    - ReadWriteOnce #Normally iska matlab hai volume ek node par read/write mount hoga.
+
+  resource:
+    required:
+       storage: 1Gi #PostgreSQL ke liye 20 GB storage request kiya

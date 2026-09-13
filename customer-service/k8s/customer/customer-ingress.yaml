@@ -1,0 +1,187 @@
+# ============================================================
+# 1. API VERSION
+# ============================================================
+# Ingress resource ke liye networking.k8s.io/v1 API use ho rahi hai.
+#
+# Ye modern Kubernetes versions mein standard Ingress API hai.
+apiVersion: networking.k8s.io/v1
+
+
+# ============================================================
+# 2. RESOURCE TYPE
+# ============================================================
+# Hum yahan Kubernetes Ingress create kar rahe hain.
+#
+# Ingress ka kaam:
+# - External HTTP/HTTPS request receive karna
+# - Host/path ke basis par request ko Service tak bhejna
+#
+# Example:
+#
+# customer.example.com/api/customers
+#             |
+#             v
+#          Ingress
+#             |
+#             v
+#     customer-service
+kind: Ingress
+
+
+# ============================================================
+# 3. METADATA
+# ============================================================
+metadata:
+
+  # Ingress ka Kubernetes naam.
+  #
+  # Is naam se hum ise commands mein refer kar sakte hain:
+  #
+  # kubectl get ingress customer-ingress -n banking
+  name: customer-ingress
+
+  # Ingress "banking" namespace ke andar create hoga.
+  #
+  # IMPORTANT:
+  # customer-service bhi banking namespace mein hona chahiye.
+  namespace: banking
+
+
+# ============================================================
+# 4. SPEC
+# ============================================================
+# spec mein hum Ingress ka actual routing configuration
+# define karte hain.
+spec:
+
+
+  # ==========================================================
+  # 5. INGRESS CLASS
+  # ==========================================================
+  # Ye batata hai ki kaunsa Ingress Controller
+  # is Ingress resource ko handle karega.
+  #
+  # "nginx" ka matlab:
+  #
+  # NGINX Ingress Controller
+  #
+  # IMPORTANT:
+  # Cluster mein NGINX Ingress Controller installed/running
+  # hona chahiye.
+  ingressClassName: nginx
+
+
+  # ==========================================================
+  # 6. RULES
+  # ==========================================================
+  # rules define karti hain ki incoming request ko
+  # kahan route karna hai.
+  rules:
+
+    # --------------------------------------------------------
+    # HOST
+    # --------------------------------------------------------
+    # Ye hostname incoming request ke hostname se match hoga.
+    #
+    # Example request:
+    #
+    # http://customer.example.com/api/customers
+    #
+    # Is request mein:
+    #
+    # Host = customer.example.com
+    #
+    # Isliye ye rule match karega.
+    - host: customer.banking.com
+
+
+      # ======================================================
+      # 7. HTTP
+      # ======================================================
+      # Host ke andar HTTP routing rules define karte hain.
+      http:
+
+        # ====================================================
+        # 8. PATHS
+        # ====================================================
+        # Different URL paths ke liye routing define kar sakte hain.
+        paths:
+
+          # --------------------------------------------------
+          # PATH
+          # --------------------------------------------------
+          # Agar request:
+          #
+          # /api/customers
+          #
+          # se start hoti hai, to neeche defined backend
+          # Service ko request bheji jayegi.
+          #
+          # Examples:
+          #
+          # /api/customers
+          # /api/customers/1
+          # /api/customers/100
+          #
+          # Ye sab Prefix ki wajah se match honge.
+          - path: /api/customers
+
+
+            # ------------------------------------------------
+            # PATH TYPE
+            # ------------------------------------------------
+            # Prefix ka matlab:
+            #
+            # Given path se start hone wali requests match hongi.
+            #
+            # Example:
+            #
+            # /api/customers          -> MATCH
+            # /api/customers/1        -> MATCH
+            # /api/customers/abc      -> MATCH
+            #
+            # Lekin:
+            #
+            # /api/orders             -> MATCH nahi
+            pathType: Prefix
+
+
+            # =================================================
+            # 9. BACKEND
+            # =================================================
+            # Backend batata hai ki matching request ko
+            # kis Kubernetes Service ko bhejna hai.
+            backend:
+
+              # ------------------------------------------------
+              # SERVICE
+              # ------------------------------------------------
+              # Hum request ko "customer-service" naam ki
+              # Kubernetes Service ko bhej rahe hain.
+              service:
+
+                # Service ka naam.
+                #
+                # Ye exactly aapke Service YAML ke metadata.name
+                # se match hona chahiye.
+                #
+                # Example:
+                #
+                # kind: Service
+                # metadata:
+                #   name: customer-service
+                name: customer-service
+
+
+                # ------------------------------------------------
+                # SERVICE PORT
+                # ------------------------------------------------
+                # Ingress customer-service ke port 80 par
+                # request bhejega.
+                #
+                # IMPORTANT:
+                # Ye containerPort 8082 nahi hai.
+                #
+                # Ye SERVICE ka port hai.
+                port:
+                  number: 80

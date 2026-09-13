@@ -1,0 +1,168 @@
+# ============================================================
+# 1. API VERSION
+# ============================================================
+# HPA ke liye autoscaling/v2 API use kar rahe hain.
+#
+# autoscaling/v2 mein advanced scaling configuration
+# available hoti hai.
+apiVersion: autoscaling/v2
+
+
+# ============================================================
+# 2. RESOURCE TYPE
+# ============================================================
+# Hum HorizontalPodAutoscaler resource create kar rahe hain.
+#
+# HPA ka kaam:
+#
+# Customer Service ke Pods ki quantity ko automatically
+# increase/decrease karna.
+kind: HorizontalPodAutoscaler
+
+
+# ============================================================
+# 3. METADATA
+# ============================================================
+metadata:
+
+  # HPA ka naam
+  name: customer-service-hpa
+
+  # HPA banking namespace mein rahega.
+  #
+  # IMPORTANT:
+  # Target Deployment bhi isi namespace mein hona chahiye.
+  namespace: banking
+
+
+# ============================================================
+# 4. SPEC
+# ============================================================
+# Yahan define karte hain ki HPA kaise behave karega.
+spec:
+
+
+  # ==========================================================
+  # 5. SCALE TARGET
+  # ==========================================================
+  # HPA ko batana padega:
+  #
+  # "Kis Deployment ke Pods ko scale karna hai?"
+  #
+  # Yahan hum customer-service Deployment ko target kar rahe hain.
+  scaleTargetRef:
+
+    # Target Deployment apps/v1 API use karta hai.
+    apiVersion: apps/v1
+
+    # Target resource Deployment hai.
+    kind: Deployment
+
+    # Deployment ka exact naam.
+    #
+    # Ye customer-deployment.yaml mein:
+    #
+    # metadata:
+    #   name: customer-service
+    #
+    # se match hona chahiye.
+    name: customer-service
+
+
+  # ==========================================================
+  # 6. MINIMUM REPLICAS
+  # ==========================================================
+  # HPA kabhi bhi Customer Service ko 2 Pods se kam nahi karega.
+  #
+  # Normal situation:
+  #
+  # Pod 1 --> Running
+  # Pod 2 --> Running
+  #
+  # Minimum = 2
+  minReplicas: 2
+
+
+  # ==========================================================
+  # 7. MAXIMUM REPLICAS
+  # ==========================================================
+  # HPA maximum 5 Pods tak scale karega.
+  #
+  # Example:
+  #
+  # Pod 1
+  # Pod 2
+  # Pod 3
+  # Pod 4
+  # Pod 5
+  #
+  # Iske baad HPA aur Pods create nahi karega.
+  maxReplicas: 5
+
+
+  # ==========================================================
+  # 8. SCALING BEHAVIOR
+  # ==========================================================
+  # Yahan control karte hain ki HPA kitni quickly
+  # scale up/down kare.
+  behavior:
+
+
+    # ========================================================
+    # SCALE UP
+    # ========================================================
+    # Jab traffic/CPU increase hota hai aur more Pods ki
+    # requirement hoti hai.
+    scaleUp:
+
+      # 60 seconds ka stabilization period.
+      #
+      # Iska purpose sudden/fluctuating metrics ki wajah se
+      # unnecessary rapid scaling ko control karna hai.
+      stabilizationWindowSeconds: 60
+
+
+    # ========================================================
+    # SCALE DOWN
+    # ========================================================
+    # Jab traffic kam hota hai aur extra Pods ki requirement
+    # nahi hoti.
+    scaleDown:
+
+      # 300 seconds = 5 minutes
+      #
+      # HPA Pods ko immediately remove nahi karega.
+      #
+      # 5 minutes ka stabilization period scaling ko
+      # stable banane mein help karta hai.
+      stabilizationWindowSeconds: 300
+
+
+  # ==========================================================
+  # 9. METRICS
+  # ==========================================================
+  # HPA decide karega ki scaling kab karni hai.
+  #
+  # Yahan hum CPU ko metric ke roop mein use kar rahe hain.
+  metrics:
+
+    - type: Resource
+
+      resource:
+
+        # CPU utilization monitor karni hai.
+        name: cpu
+
+        target:
+
+          # Utilization ka matlab:
+          #
+          # CPU utilization ko percentage ke form mein
+          # calculate kiya jayega.
+          type: Utilization
+
+          # Target average CPU utilization = 70%
+          #
+          # Agar Pods ka average CPU usage target se
+          # significantly upar jata hai, HPA scale up kar sakta hai.
+          averageUtilization: 70

@@ -1,60 +1,161 @@
+
+# ============================================================
+# SERVER CONFIGURATION
+# ============================================================
 server:
+  # Spring Boot application container ke andar port 8082 par
+  # run hogi.
   port: 8082
 
+
+# ============================================================
+# SPRING CONFIGURATION
+# ============================================================
 spring:
+
   application:
+    # Application/service ka naam.
     name: customer-service
+
+
+  # ==========================================================
+  # POSTGRESQL DATABASE
+  # ==========================================================
   datasource:
-    url: jdbc:postgresql://localhost:5432/customer_db
-    username: postgres
-    password: postgres
+
+    # Kubernetes ke andar PostgreSQL Service ka naam "postgres" hai.
+    #
+    # IMPORTANT:
+    # localhost use nahi karna hai.
+    #
+    # localhost ka matlab hota hai:
+    # "Customer Service ke apne container ke andar PostgreSQL"
+    #
+    # Lekin PostgreSQL alag Pod mein hai.
+    # Isliye Kubernetes Service name use karenge.
+    url: jdbc:postgresql://postgres:5432/customer_db
+
+    # Production mein username/password ko application.yml
+    # mein hard-code nahi karna chahiye.
+    #
+    # Kubernetes Deployment mein ye values Secret se
+    # environment variables ke through provide hongi.
+    #
+    # Spring Boot automatically in environment variables ko
+    # read karega:
+    #
+    # SPRING_DATASOURCE_USERNAME
+    # SPRING_DATASOURCE_PASSWORD
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
     driver-class-name: org.postgresql.Driver
+
+
+  # ==========================================================
+  # JPA / HIBERNATE
+  # ==========================================================
   jpa:
+
     hibernate:
+      # Existing tables/schema ko Hibernate update karega.
+      #
+      # Development mein "update" convenient hai.
+      #
+      # Production mein database schema management ke liye
+      # Liquibase/Flyway prefer karna better hai.
       ddl-auto: update
+
+    # SQL queries ko console mein print nahi karega.
     show-sql: false
+
     properties:
       hibernate:
+
+        # PostgreSQL ke liye Hibernate dialect.
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+        # SQL formatting ke liye.
         format_sql: true
 
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 6000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
-
+# ============================================================
+# EUREKA CLIENT
+# ============================================================
 eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://discovery-service:8761/eureka/
-    fetch-registry: true
-    register-with-eureka: true
-  instance:
-    hostname: localhost
 
+  client:
+
+    serviceUrl:
+
+      # Kubernetes ke andar Eureka/Discovery Service ka naam.
+      #
+      # localhost use nahi karna hai because Eureka
+      # Customer Service ke same container mein nahi hai.
+      defaultZone: http://discovery-service:8761/eureka/
+
+    # Eureka server se registered services ki information
+    # fetch karega.
+    fetch-registry: true
+
+    # Customer Service khud Eureka mein register hogi.
+    register-with-eureka: true
+
+
+  instance:
+
+    # Kubernetes environment mein localhost use karna
+    # generally correct nahi hai.
+    #
+    # Agar Eureka ko hostname ki zarurat hai, to Pod/Service
+    # based configuration use karna better hai.
+    #
+    # Isliye hostname ko localhost se remove kar rahe hain.
+    prefer-ip-address: true
+
+
+# ============================================================
+# SPRING BOOT ACTUATOR / MONITORING
+# ============================================================
 management:
+
   endpoints:
     web:
+
+      # Sirf required actuator endpoints expose kar rahe hain.
       exposure:
-        include: health,info,metrics,circuitbreakers,prometheus
-  metrics:
-    export:
-      prometheus:
+        include: health,info,metrics,prometheus
+
+  # Kubernetes readiness/liveness probes ke liye
+  # health endpoints enable karna useful hai.
+  endpoint:
+    health:
+      probes:
         enabled: true
 
-logging:
-  level:
-    com.banking: DEBUG
-    org.springframework.security: INFO
-    org.springframework.web: INFO
+  metrics:
 
-    spring:
-      liquibase:
-        enabled: false
+    export:
+      prometheus:
+        # Prometheus metrics enable.
+        enabled: true
+
+
+# ============================================================
+# LOGGING
+# ============================================================
+logging:
+
+  level:
+
+    # Aapke banking application ke logs.
+    #
+    # Production mein DEBUG logs bahut zyada logs generate
+    # kar sakte hain, isliye INFO usually better hota hai.
+    com.banking: INFO
+
+    # Spring Security logs.
+    org.springframework.security: INFO
+
+    # Spring Web logs.
+    org.springframework.web: INFO

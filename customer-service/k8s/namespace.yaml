@@ -1,0 +1,5 @@
+#Customer service ke Kubernetes resources ko ek separate logical environment mein rakhne ke liye.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: banking

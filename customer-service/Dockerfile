@@ -1,24 +1,19 @@
-FROM maven:3.9.6-eclipse-temurin-17 AS build
-
-WORKDIR /APP
-COPY pom.xml .
-COPY src ./src
-
-RUN mvn clean package -DskipTests
-
-#stage 2
 FROM eclipse-temurin:17
 
 WORKDIR /customer-service
 
-COPY --from=build app/target/*.jar customer.jar
-
-# Copy OpenTelemetry Java Agent
+COPY --from=build /app/target/*.jar customer.jar
 COPY opentelemetry-javaagent.jar opentelemetry-javaagent.jar
 
-EXPOSE 8008
+RUN useradd --system --uid 1001 customeruser
+
+RUN chown -R customeruser:customeruser /customer-service
+
+USER 1001
+
+EXPOSE 8082
 
 ENTRYPOINT ["java", \
     "-javaagent:/customer-service/opentelemetry-javaagent.jar", \
     "-jar", \
-    "customer.jar"]
+    "/customer-service/customer.jar"]
