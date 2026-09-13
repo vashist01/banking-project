@@ -183,6 +183,7 @@
 				</executions>
 			</plugin>
 		</plugins>
+		<finalName>customer</finalName>
 	</build>
 
 </project>
