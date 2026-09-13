@@ -1,29 +1,64 @@
+# ============================================================
+# PostgreSQL Persistent Volume Claim
+# ============================================================
+#
 # Ye bahut important file hai.
-
+#
 # Kyun?
-
+#
 # PostgreSQL ka data container ke andar directly nahi rakhna chahiye.
-
-# Agar PostgreSQL pod delete ho gaya:
-
-# Postgres Pod
+#
+# Agar PostgreSQL Pod delete ho gaya:
+#
+# PostgreSQL Pod
 #      |
-#      └── container filesystem
+#      └── Container filesystem
 #               |
 #               └── DATA ❌
-
-# Pod recreate hone par data lose ho sakta hai..
+#
+# Pod recreate hone par container filesystem ka data lose
+# ho sakta hai.
+#
+# Isliye PostgreSQL ka data Persistent Volume (PV) par store
+# karenge.
+#
+# PVC = PersistentVolumeClaim
+#
+# PVC Kubernetes se storage maangta hai.
+# ============================================================
 
 apiVersion: v1
-kind: PersistentVolumeClaim #Kubernetes se storage maang rahe hain
+kind: PersistentVolumeClaim
+
 metadata:
-    name: postgres-pvc
-    namespace: banking
+  name: postgres-pvc
+  namespace: banking
 
 spec:
-  accessModes:
-    - ReadWriteOnce #Normally iska matlab hai volume ek node par read/write mount hoga.
 
-  resource:
-    required:
-       storage: 1Gi #PostgreSQL ke liye 20 GB storage request kiya
+  # ==========================================================
+  # Access Mode
+  # ==========================================================
+  #
+  # ReadWriteOnce (RWO)
+  # Volume ek node par read/write mode mein mount ho sakta hai.
+  #
+  # PostgreSQL ke single Pod setup ke liye ye suitable hai.
+  # ==========================================================
+
+  accessModes:
+    - ReadWriteOnce
+
+  # ==========================================================
+  # Storage Request
+  # ==========================================================
+  #
+  # Kubernetes se 20Gi storage request kar rahe hain.
+  #
+  # NOTE:
+  # 20Gi = approximately 20 GB
+  # ==========================================================
+
+  resources:
+    requests:
+      storage: 1Gi
