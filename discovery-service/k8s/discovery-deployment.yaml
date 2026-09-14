@@ -42,11 +42,11 @@ spec:
 
           resources:
             requests:
-              memory: "512Mi"
+              memory: "256Mi"
               cpu: "100m"
 
             limits:
-              memory: "512Mi"
+              memory: "768Mi"
               cpu: "500m"
 
           startupProbe:
