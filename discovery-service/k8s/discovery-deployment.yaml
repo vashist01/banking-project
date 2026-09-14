@@ -3,28 +3,46 @@ kind: Deployment
 metadata:
   name: discovery-service
   namespace: banking
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: discovery-service
+
   template:
     metadata:
       labels:
         app: discovery-service
+
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+
       containers:
         - name: discovery-service
-          image: rajvi1023/discovery-service:latest
+
+          image: ${FULL_IMAGE}
           imagePullPolicy: Always
 
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+
           ports:
-            - containerPort: 8761
+            - name: http
+              containerPort: 8761
 
           resources:
             requests:
               memory: "256Mi"
               cpu: "100m"
+
             limits:
               memory: "512Mi"
               cpu: "500m"
