@@ -1,0 +1,366 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'rajvi1023/api-gateway'
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    }
+
+    stages {
+        // =========================================================
+        // 1. MAVEN BUILD
+        // =========================================================
+
+        stage('Maven Build') {
+            steps {
+                dir('api-gateway') {
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "MAVEN BUILD"
+                        echo "======================================"
+
+                        mvn clean package -DskipTests
+
+                        echo ""
+                        echo "Generated JAR:"
+                        ls -lh target/gateway.jar
+                    '''
+                }
+            }
+        }
+
+        // =========================================================
+        // 2. DOCKER BUILD
+        // =========================================================
+
+        stage('Docker Build') {
+            steps {
+                dir('api-gateway') {
+                    sh '''
+                set -e
+
+                echo "===== Dockerfile ====="
+                nl -ba Dockerfile
+
+                echo "===== Build context ====="
+                pwd
+                ls -lah
+                ls -lh target/gateway.jar
+
+                echo "===== Docker version ====="
+                docker --version
+
+                echo "===== Docker build ====="
+
+                echo "========================================="
+                echo "Building Docker image: ${FULL_IMAGE}"
+                echo "========================================="
+
+                docker build \
+                    --progress=plain \
+                    -t "${FULL_IMAGE}" \
+                    .
+            '''
+                }
+            }
+        }
+
+        // =========================================================
+        // 3. DOCKER PUSH
+        // =========================================================
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DOCKER PUSH"
+                        echo "======================================"
+
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        docker push "${FULL_IMAGE}"
+
+                        docker logout
+                    '''
+                }
+            }
+        }
+        // =========================================================
+        // 5. DEPLOY BANKING NAMESPACE
+        // =========================================================
+
+        stage('Deploy Banking Namespace') {
+            steps {
+                dir('api-gateway') {
+                    sh '''
+                        set -e
+
+                        kubectl apply \
+                            -f k8s/gateway/namespace.yaml
+
+                        kubectl get namespace banking
+                    '''
+                }
+            }
+        } 
+        // =========================================================
+        // 9. DEPLOY REDIS
+        // =========================================================
+
+        stage('Deploy Redis') {
+            steps {
+                dir('api-gateway') {
+                    sh '''
+                set -e
+
+                echo "======================================"
+                echo "DEPLOY REDIS"
+                echo "======================================"
+
+                kubectl apply \
+                    -f k8s/redis/redis-deployment.yaml
+
+                kubectl apply \
+                    -f k8s/redis/redis-service.yaml
+
+                echo ""
+                echo "Redis deployment:"
+                kubectl get deployment redis -n banking
+
+                echo ""
+                echo "Redis pod:"
+                kubectl get pods \
+                    -n banking \
+                    -l app=redis \
+                    -o wide
+
+                echo ""
+                echo "Redis service:"
+                kubectl get svc redis -n banking
+
+                echo ""
+                echo "Waiting for Redis..."
+
+                kubectl rollout status \
+                    deployment/redis \
+                    -n banking \
+                    --timeout=120s
+
+                echo ""
+                echo "Redis endpoints:"
+                kubectl get endpoints redis -n banking
+
+                echo ""
+                echo "Redis is READY!"
+            '''
+                }
+            }
+        } 
+
+        // =========================================================
+        // 8. DEPLOY gateway SERVICE
+        // =========================================================
+
+        stage('Deploy gateway Service') {
+            steps {
+                dir('api-gateway') {
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY gateway SERVICE"
+                        echo "======================================"
+
+                        export IMAGE_TAG="${BUILD_NUMBER}"
+
+                        echo "Deploying:"
+                        echo "${FULL_IMAGE}"
+
+                        envsubst < \
+                            k8s/gateway/api-gateway-deployment.yaml | \
+                            kubectl apply -f -
+
+                        kubectl apply \
+                            -f k8s/gateway/api-gateway.yaml
+
+                        echo ""
+                        echo "Deployment:"
+                        kubectl get deployment api-gateway -n banking
+
+                        echo ""
+                        echo "Waiting for gateway Service..."
+
+                        if ! kubectl rollout status \
+                            deployment/api-gateway \
+                            -n banking \
+                            --timeout=180s
+                        then
+
+                            echo "======================================"
+                            echo "gateway SERVICE FAILED"
+                            echo "======================================"
+
+                            echo ""
+                            echo "Pods:"
+                            kubectl get pods \
+                                -n banking \
+                                -l app=api-gateway \
+                                -o wide
+
+                            echo ""
+                            echo "Services:"
+                            kubectl get svc -n banking
+
+                            echo ""
+                            echo "Endpoints:"
+                            kubectl get endpoints -n banking
+
+                            echo ""
+                            echo "gateway logs:"
+                            kubectl logs \
+                                -n banking \
+                                -l app=api-gateway \
+                                --tail=200 || true
+
+                            echo ""
+                            echo "gateway events:"
+                            kubectl get events \
+                                -n banking \
+                                --sort-by=.lastTimestamp \
+                                | tail -50
+
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "gateway Service is READY!"
+                    '''
+                }
+            }
+        }  
+        // =========================================================
+        // 11. FINAL VERIFICATION
+        // =========================================================
+
+        stage('Verify Kubernetes') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "======================================"
+                    echo "KUBERNETES STATUS"
+                    echo "======================================"
+
+                    echo ""
+                    echo "Deployments:"
+                    kubectl get deployments -n banking
+
+                    echo ""
+                    echo "Pods:"
+                    kubectl get pods -n banking -o wide
+
+                    echo ""
+                    echo "Services:"
+                    kubectl get services -n banking
+
+                    echo ""
+                    echo "Endpoints:"
+                    kubectl get endpoints -n banking
+
+                    echo ""
+                    echo "HPA:"
+                    kubectl get hpa -n banking
+
+                    echo ""
+                    echo "PDB:"
+                    kubectl get pdb -n banking
+
+                    echo ""
+                    echo "======================================"
+                    echo "gateway SERVICE DEPLOYMENT COMPLETE"
+                    echo "======================================"
+                '''
+            }
+        }
+
+        // =========================================================
+        // 12. GET SERVICE URL
+        // =========================================================
+
+        stage('Get gateway Service URL') {
+            steps {
+                sh '''
+                    echo "======================================"
+                    echo "gateway SERVICE URL"
+                    echo "======================================"
+
+                    kubectl get svc api-gateway -n banking
+
+                    echo ""
+
+                    minikube service \
+                        api-gateway \
+                        -n banking \
+                        --url || true
+                '''
+            }
+        }
+    }
+
+    // =========================================================
+    // POST
+    // =========================================================
+
+    post {
+        success {
+            echo """
+            ======================================
+            CI/CD SUCCESS
+            ======================================
+
+            Application : gateway Service
+            Image       : ${FULL_IMAGE}
+            Build       : ${BUILD_NUMBER}
+            Namespace   : banking
+            Port        : 8001
+
+            ======================================
+            """
+        }
+
+        failure {
+            echo """
+            ======================================
+            CI/CD FAILED
+            ======================================
+
+            Application : gateway Service
+            Image       : ${FULL_IMAGE}
+            Build       : ${BUILD_NUMBER}
+            Namespace   : banking
+
+            ======================================
+            """
+        }
+
+        always {
+            echo "Jenkins Build: ${BUILD_NUMBER}"
+            echo "Result: ${currentBuild.currentResult}"
+        }
+    }
+}

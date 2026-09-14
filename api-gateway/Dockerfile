@@ -1,18 +1,16 @@
-FROM maven:3.9.6-eclipse-temurin-21 AS build
-
-WORKDIR /app
-
-COPY pom.xml .
-COPY src ./src
-
-RUN mvn clean package -DskipTests
-
 FROM eclipse-temurin:21-jre
 
-WORKDIR /api-gateway
+WORKDIR /gateway
 
-COPY --from=build /app/target/*.jar api-gateway.jar
+COPY target/*.jar gateway.jar
+
+RUN groupadd --system --gid 1001 gatewayuser && \
+    useradd --system --uid 1001 --gid 1001 gatewayuser
+
+RUN chown -R 1001:1001 /gateway
+
+USER 1001
 
 EXPOSE 8888
 
-ENTRYPOINT ["java", "-jar", "api-gateway.jar"]
+ENTRYPOINT ["java", "-jar", "/gateway/gateway.jar"]
