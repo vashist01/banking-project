@@ -10,20 +10,9 @@ pipeline {
     environment {
 
         // Docker Hub image name
-        IMAGE_NAME = 'rajvi1023/customer-service'
-
-        // Jenkins build number ko Docker image tag ke roop mein use karenge.
-        //
-        // Example:
-        // Build 25
-        // ->
-        // rajvi1023/customer-service:25
-        IMAGE_TAG = "${BUILD_NUMBER}"
-
-        // Complete Docker image name
-        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
-
-        // Jenkins user ka kubeconfig
+        IMAGE_NAME = 'rajvi1023/customer-service'  
+        IMAGE_TAG = "${BUILD_NUMBER}" 
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}" 
         KUBECONFIG = '/var/lib/jenkins/.kube/config'
     }
 
