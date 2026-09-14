@@ -28,19 +28,19 @@ spec:
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
-                  name: customer-db-secret
+                  name: postgres-secret
                   key: POSTGRES_DB
 
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
-                  name: customer-db-secret
+                  name: postgres-secret
                   key: POSTGRES_USER
 
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: customer-db-secret
+                  name: postgres-secret
                   key: POSTGRES_PASSWORD
 
           volumeMounts:
