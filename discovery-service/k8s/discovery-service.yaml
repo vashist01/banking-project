@@ -3,11 +3,15 @@ kind: Service
 metadata:
   name: discovery-service
   namespace: banking
+
 spec:
+  type: ClusterIP
+
   selector:
     app: discovery-service
+
   ports:
     - name: http
       port: 8761
       targetPort: 8761
-  type: ClusterIP
+      protocol: TCP
