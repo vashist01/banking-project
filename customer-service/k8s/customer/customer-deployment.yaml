@@ -217,7 +217,7 @@ spec:
                 secretKeyRef:
 
                   # PostgreSQL ka shared Secret.
-                  name: customer-db-secret
+                  name: postgres-secret
 
                   # Secret ke andar username ki key.
                   key: POSTGRES_USER
@@ -234,7 +234,7 @@ spec:
                 secretKeyRef:
 
                   # PostgreSQL ka shared Secret.
-                  name: customer-db-secret
+                  name: postgres-secret
 
                   # Secret ke andar password ki key.
                   key: POSTGRES_PASSWORD
