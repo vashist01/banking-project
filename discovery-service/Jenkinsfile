@@ -1,0 +1,303 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'rajvi1023/discovery-service'
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+        FULL_IMAGE = "${IMAGE_NAME}:${IMAGE_TAG}"
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    }
+
+    stages {
+        // =========================================================
+        // 1. MAVEN BUILD
+        // =========================================================
+
+        stage('Maven Build') {
+            steps {
+                dir('discovery-service') {
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "MAVEN BUILD"
+                        echo "======================================"
+
+                        mvn clean package -DskipTests
+
+                        echo ""
+                        echo "Generated JAR:"
+                        ls -lh target/discovery.jar
+                    '''
+                }
+            }
+        }
+
+        // =========================================================
+        // 2. DOCKER BUILD
+        // =========================================================
+
+        stage('Docker Build') {
+            steps {
+                dir('discovery-service') {
+                    sh '''
+                set -e
+
+                echo "===== Dockerfile ====="
+                nl -ba Dockerfile
+
+                echo "===== Build context ====="
+                pwd
+                ls -lah
+                ls -lh target/discovery.jar
+
+                echo "===== Docker version ====="
+                docker --version
+
+                echo "===== Docker build ====="
+
+                echo "========================================="
+                echo "Building Docker image: ${FULL_IMAGE}"
+                echo "========================================="
+
+                docker build \
+                    --progress=plain \
+                    -t "${FULL_IMAGE}" \
+                    .
+            '''
+                }
+            }
+        }
+
+        // =========================================================
+        // 3. DOCKER PUSH
+        // =========================================================
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DOCKER PUSH"
+                        echo "======================================"
+
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        docker push "${FULL_IMAGE}"
+
+                        docker logout
+                    '''
+                }
+            }
+        }
+        // =========================================================
+        // 5. DEPLOY BANKING NAMESPACE
+        // =========================================================
+
+        stage('Deploy Banking Namespace') {
+            steps {
+                dir('discovery-service') {
+                    sh '''
+                        set -e
+
+                        kubectl apply \
+                            -f k8s/namespace.yaml
+
+                        kubectl get namespace banking
+                    '''
+                }
+            }
+        } 
+
+        stage('Deploy Discovery Service') {
+            steps {
+                dir('discovery-service') {
+                    sh '''
+                        set -e
+
+                        echo "======================================"
+                        echo "DEPLOY discovery SERVICE"
+                        echo "======================================"
+
+                        export IMAGE_TAG="${BUILD_NUMBER}"
+
+                        echo "Deploying:"
+                        echo "${FULL_IMAGE}"
+
+                        envsubst < \
+                            k8s/discovery-service-deployment.yaml | \
+                            kubectl apply -f -
+
+                        kubectl apply \
+                            -f k8s/discovert-service.yaml
+
+                        echo ""
+                        echo "Deployment:"
+                        kubectl get deployment discovery-service -n banking
+
+                        echo ""
+                        echo "Waiting for discovery Service..."
+
+                        if ! kubectl rollout status \
+                            deployment/discovery-service \
+                            -n banking \
+                            --timeout=180s
+                        then
+
+                            echo "======================================"
+                            echo "discovery SERVICE FAILED"
+                            echo "======================================"
+
+                            echo ""
+                            echo "Pods:"
+                            kubectl get pods \
+                                -n banking \
+                                -l app=discovery-service \
+                                -o wide
+
+                            echo ""
+                            echo "Services:"
+                            kubectl get svc -n banking
+
+                            echo ""
+                            echo "Endpoints:"
+                            kubectl get endpoints -n banking
+
+                            echo ""
+                            echo "discovery logs:"
+                            kubectl logs \
+                                -n banking \
+                                -l app=discovery-service \
+                                --tail=200 || true
+
+                            echo ""
+                            echo "discovery events:"
+                            kubectl get events \
+                                -n banking \
+                                --sort-by=.lastTimestamp \
+                                | tail -50
+
+                            exit 1
+                        fi
+
+                        echo ""
+                        echo "discovery Service is READY!"
+                    '''
+                }
+            }
+        }
+ 
+
+        // =========================================================
+        // 11. FINAL VERIFICATION
+        // =========================================================
+
+        stage('Verify Kubernetes') {
+            steps {
+                sh '''
+                    set -e
+
+                    echo "======================================"
+                    echo "KUBERNETES STATUS"
+                    echo "======================================"
+
+                    echo ""
+                    echo "Deployments:"
+                    kubectl get deployments -n banking
+
+                    echo ""
+                    echo "Pods:"
+                    kubectl get pods -n banking -o wide
+
+                    echo ""
+                    echo "Services:"
+                    kubectl get services -n banking
+
+                    echo ""
+                    echo "Endpoints:"
+                    kubectl get endpoints -n banking 
+                     
+                    echo ""
+                    echo "======================================"
+                    echo "discovery SERVICE DEPLOYMENT COMPLETE"
+                    echo "======================================"
+                '''
+            }
+        }
+
+        // =========================================================
+        // 12. GET SERVICE URL
+        // =========================================================
+
+        stage('Get discovery Service URL') {
+            steps {
+                sh '''
+                    echo "======================================"
+                    echo "discovery SERVICE URL"
+                    echo "======================================"
+
+                    kubectl get svc discovery-service -n banking
+
+                    echo ""
+
+                    minikube service \
+                        discovery-service \
+                        -n banking \
+                        --url || true
+                '''
+            }
+        }
+    }
+
+    // =========================================================
+    // POST
+    // =========================================================
+
+    post {
+        success {
+            echo """
+            ======================================
+            CI/CD SUCCESS
+            ======================================
+
+            Application : discovery Service
+            Image       : ${FULL_IMAGE}
+            Build       : ${BUILD_NUMBER}
+            Namespace   : banking
+            Port        : 8001
+
+            ======================================
+            """
+        }
+
+        failure {
+            echo """
+            ======================================
+            CI/CD FAILED
+            ======================================
+
+            Application : discovery service
+            Image       : ${FULL_IMAGE}
+            Build       : ${BUILD_NUMBER}
+            Namespace   : banking
+
+            ======================================
+            """
+        }
+
+        always {
+            echo "Jenkins Build: ${BUILD_NUMBER}"
+            echo "Result: ${currentBuild.currentResult}"
+        }
+    }
+}
