@@ -10,8 +10,9 @@ spec:
     app: customer-service
 
   ports:
-    - name: http
+    - name: https
       port: 80
       targetPort: 8082
+      protocol: TCP
 
   type: ClusterIP

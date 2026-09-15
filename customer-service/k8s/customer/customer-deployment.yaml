@@ -315,8 +315,8 @@ spec:
               path: /actuator/health/readiness
 
               # Named container port.
-              port: http
-
+              port: 8082
+              scheme: HTTPS
 
             # Application start hone ke baad
             # pehli readiness check 30 seconds baad hogi.
@@ -351,7 +351,8 @@ spec:
               path: /actuator/health/liveness
 
               # Named container port.
-              port: http
+              port: 8082
+              scheme: HTTPS
 
 
             # Application ko initially 60 seconds ka time do.
