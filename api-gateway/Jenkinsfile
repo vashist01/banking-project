@@ -199,11 +199,11 @@ pipeline {
                         echo "${FULL_IMAGE}"
 
                         envsubst < \
-                            k8s/gateway/api-gateway-deployment.yaml | \
+                            k8s/gateway-deployment.yaml | \
                             kubectl apply -f -
 
                         kubectl apply \
-                            -f k8s/gateway/api-gateway.yaml
+                            -f k8s/api-service.yaml
 
                         echo ""
                         echo "Deployment:"
