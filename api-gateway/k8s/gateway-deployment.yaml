@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: api-gateway
   namespace: banking
@@ -17,17 +18,33 @@ spec:
         app: api-gateway
 
     spec:
+
+      # ==========================================================
+      # POD SECURITY
+      # ==========================================================
+
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001
 
+
+      # ==========================================================
+      # CONTAINER
+      # ==========================================================
+
       containers:
+
         - name: api-gateway
 
           image: ${FULL_IMAGE}
           imagePullPolicy: Always
+
+
+          # ======================================================
+          # CONTAINER SECURITY
+          # ======================================================
 
           securityContext:
             runAsNonRoot: true
@@ -35,12 +52,23 @@ spec:
             runAsGroup: 1001
             allowPrivilegeEscalation: false
 
+
+          # ======================================================
+          # PORT
+          # ======================================================
+
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
 
+
+          # ======================================================
+          # RESOURCES
+          # ======================================================
+
           resources:
+
             requests:
               memory: "256Mi"
               cpu: "100m"
@@ -49,29 +77,36 @@ spec:
               memory: "512Mi"
               cpu: "500m"
 
-          startupProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8080
-            initialDelaySeconds: 20
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 30
+
+          # ======================================================
+          # READINESS PROBE
+          # ======================================================
 
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8080
-            initialDelaySeconds: 10
+              port: http
+              scheme: HTTP
+
+            initialDelaySeconds: 20
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 6
+            successThreshold: 1
+
+
+          # ======================================================
+          # LIVENESS PROBE
+          # ======================================================
 
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8080
-            initialDelaySeconds: 30
+              port: http
+              scheme: HTTP
+
+            initialDelaySeconds: 60
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 3
+            successThreshold: 1
