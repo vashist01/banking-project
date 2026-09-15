@@ -203,7 +203,7 @@ pipeline {
                             kubectl apply -f -
 
                         kubectl apply \
-                            -f k8s/api-service.yaml
+                            -f k8s/gateway-service.yaml
 
                         echo ""
                         echo "Deployment:"
