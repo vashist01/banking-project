@@ -11,28 +11,35 @@ pipeline {
     stages {
         // =========================================================
         // 1. MAVEN BUILD
-        // =========================================================
-
-        stage('Maven Build') {
+        // ========================================================= 
+        stage('Build Gateway') {
             steps {
                 dir('api-gateway') {
                     sh '''
-                        set -e
+                set -e
 
-                        echo "======================================"
-                        echo "MAVEN BUILD"
-                        echo "======================================"
+                echo "Building Gateway..."
 
-                        mvn clean package -DskipTests
+                mvn clean package -DskipTests
 
-                        echo ""
-                        echo "Generated JAR:"
-                        ls -lh target/gateway.jar
-                    '''
+                echo "Generated JAR:"
+                find target -maxdepth 1 -type f -name "*.jar" -ls
+
+                JAR=$(find target -maxdepth 1 -type f -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -1)
+
+                if [ -z "$JAR" ]; then
+                    echo "ERROR: No Gateway JAR was generated"
+                    exit 1
+                fi
+
+                cp "$JAR" target/gateway.jar
+
+                echo "Final Gateway JAR:"
+                ls -lh target/gateway.jar
+            '''
                 }
             }
         }
-
         // =========================================================
         // 2. DOCKER BUILD
         // =========================================================
@@ -117,7 +124,7 @@ pipeline {
                     '''
                 }
             }
-        } 
+        }
         // =========================================================
         // 9. DEPLOY REDIS
         // =========================================================
@@ -170,7 +177,7 @@ pipeline {
             '''
                 }
             }
-        } 
+        }
 
         // =========================================================
         // 8. DEPLOY gateway SERVICE
@@ -252,7 +259,7 @@ pipeline {
                     '''
                 }
             }
-        }  
+        }
         // =========================================================
         // 11. FINAL VERIFICATION
         // =========================================================

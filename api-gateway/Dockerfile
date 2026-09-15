@@ -13,4 +13,4 @@ USER 1001
 
 EXPOSE 8888
 
-ENTRYPOINT ["java", "-jar", "/gateway/gateway.jar"]
+ENTRYPOINT ["java", "-jar", "/api-gateway/gateway.jar"]
